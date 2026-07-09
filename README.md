@@ -38,11 +38,17 @@ types in `src/types.ts` (see "How it works" above).
 
 ## Prerequisites
 
-- Node.js 24 (see `.nvmrc`). If you use [fnm](https://github.com/Schniz/fnm), just run
+- **Node.js 24** (see `.nvmrc`). If you use [fnm](https://github.com/Schniz/fnm), just run
   `fnm use` in this directory and it'll pick up the right version automatically.
-- [pnpm](https://pnpm.io/), via [Corepack](https://nodejs.org/api/corepack.html)
-  (`corepack enable`, then `pnpm` just works — the exact version is pinned in
-  `package.json`'s `packageManager` field).
+- **pnpm 11**, via [Corepack](https://nodejs.org/api/corepack.html) (bundled with Node — run
+  `corepack enable` once, and `pnpm` just works, resolved to the exact version pinned in
+  `package.json`'s `packageManager` field, currently `pnpm@11.11.0`).
+  - Corepack shims are written per Node install. If you later switch to a different Node
+    version (via fnm or otherwise), run `corepack enable` again under it — otherwise `pnpm`
+    won't be on `PATH` for that version.
+- Everything else (TypeScript, vitest, fast-check, tsx) is a `devDependency` pulled in by
+  `pnpm install` below — nothing else to install by hand. Note this repo currently pins
+  **TypeScript 7.x**, not the more common 5.x — that's intentional, not a typo.
 
 ## Setup
 
