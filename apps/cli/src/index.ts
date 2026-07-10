@@ -18,6 +18,8 @@ override what the file says:
                                               (implies --sell)
       --tolerance-bps <n>                     tolerance band in basis points
       --min-trade-cents <n>                   minimum sell-funded trade size
+      --optimizer <greedy|lp>                 allocation engine (default greedy;
+                                              lp = provably optimal linear program)
   -h, --help                                  show this help
 
 Examples:
@@ -172,6 +174,7 @@ function main(): void {
       "sell-taxable": { type: "boolean", default: false },
       "tolerance-bps": { type: "string" },
       "min-trade-cents": { type: "string" },
+      optimizer: { type: "string" },
       help: { type: "boolean", short: "h", default: false },
     },
   });
@@ -204,6 +207,12 @@ function main(): void {
   }
   if (values["min-trade-cents"] !== undefined) {
     options.minTradeCents = parseIntFlag(values["min-trade-cents"], "--min-trade-cents");
+  }
+  if (values.optimizer !== undefined) {
+    if (values.optimizer !== "greedy" && values.optimizer !== "lp") {
+      throw new Error(`Invalid --optimizer "${values.optimizer}": expected "greedy" or "lp".`);
+    }
+    options.optimizer = values.optimizer;
   }
 
   const result = rebalance(scenario.portfolio, scenario.targets, options);

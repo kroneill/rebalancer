@@ -40,6 +40,13 @@ shape a future UI would save/load):
   - `minTradeCents` (default `0`) — floor on individual sell-funded moves.
     (Contribution cash is always fully invested, however small — cash may
     not sit idle in an account.)
+  - `optimizer` (default `"greedy"`) — the allocation engine. `"greedy"` is
+    the two-pass waterfall below; `"lp"` solves the same problem as a linear
+    program ([YALPS](https://github.com/Ivordir/YALPS)): provably minimal
+    deviation, then minimal selling, then minimal *taxable* selling, then
+    tax-preferred placement. Both honor the same invariants;
+    equally-optimal placements may differ, and `"lp"` ignores
+    `minTradeCents` (with a warning).
 
 **Algorithm** (greedy waterfall in two passes — full detail in the comment
 block atop `packages/solver/src/rebalance.ts`):
@@ -75,10 +82,10 @@ what should make it safe to drop straight behind a web UI later — the solver
 has no notion of a request/response cycle to adapt.
 
 Internally, `rebalance()` reduces its input to a fixed-supply transportation
-problem and delegates placement to `allocate()`
-(`packages/solver/src/allocate.ts`) — a deliberate seam so the greedy
-implementation can later be swapped for an LP-backed one without touching
-callers, the scenario format, or the tests.
+problem and delegates placement behind a deliberate seam: the greedy
+waterfall in `packages/solver/src/allocate.ts`, or the LP in
+`allocate.lp.ts` when `optimizer: "lp"` is set. A brute-force reference in
+the property tests holds both implementations to the same optimality bar.
 
 ## Project layout
 
@@ -136,6 +143,7 @@ override the file:
     --sell-taxable                          also allow sells in taxable accounts (implies --sell)
     --tolerance-bps <n>                     tolerance band in basis points
     --min-trade-cents <n>                   minimum sell-funded trade size
+    --optimizer <greedy|lp>                 allocation engine (default greedy)
 ```
 
 Try it against the placeholder fixtures:
