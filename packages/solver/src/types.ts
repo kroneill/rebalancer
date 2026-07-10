@@ -118,9 +118,18 @@ export interface RebalanceOptions {
    * Minimum size, in integer cents, of a sell-funded rebalancing move
    * (default 0 = no minimum). Applies to the sell pass only: contribution
    * cash is always fully invested, however small, because cash may not sit
-   * idle in an account.
+   * idle in an account. Not supported by the "lp" optimizer (ignored with a
+   * warning).
    */
   minTradeCents?: number;
+  /**
+   * Which allocation engine to use (default "greedy"). "greedy" is the
+   * two-pass waterfall; "lp" solves the same problem as a linear program
+   * (provably minimal deviation, then minimal selling, then minimal taxable
+   * selling, then tax-preferred placement). Both satisfy the same
+   * invariants; equally-optimal placements may differ between them.
+   */
+  optimizer?: "greedy" | "lp";
 }
 
 /**

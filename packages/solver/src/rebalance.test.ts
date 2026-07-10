@@ -150,6 +150,60 @@ describe("rebalance - selling (golden fixture)", () => {
   });
 });
 
+describe("rebalance - lp optimizer", () => {
+  it("solves the selling golden identically to greedy (the optimum is unique)", () => {
+    const { portfolio, targets, contributions } = loadFixture(sellRequiredFixture);
+    const result = rebalance(portfolio, targets, { contributions, allowSelling: true, optimizer: "lp" });
+
+    expect(
+      result.trades.map(({ accountId, fundId, action, amount }) => ({ accountId, fundId, action, amount })),
+    ).toEqual([
+      { accountId: "ira", fundId: "vti", action: "sell", amount: 4000000 },
+      { accountId: "ira", fundId: "bnd", action: "buy", amount: 4000000 },
+    ]);
+    expect(result.warnings).toEqual([]);
+    for (const deviation of result.deviationFromTarget) {
+      expect(deviation.deviationBps).toBe(0);
+    }
+  });
+
+  it("matches greedy's total deviation on the buy-only example and conserves every account", () => {
+    const { portfolio, targets, contributions } = loadExample();
+    const greedy = rebalance(portfolio, targets, { contributions });
+    const lp = rebalance(portfolio, targets, { contributions, optimizer: "lp" });
+
+    const totalAbsDeviation = (entries: typeof greedy.resultingAllocation): number =>
+      entries.reduce((sum, e) => sum + Math.abs(e.value - e.targetValue), 0);
+    // Equally-optimal placements may differ, but the LP can never do worse.
+    expect(totalAbsDeviation(lp.resultingAllocation)).toBeLessThanOrEqual(
+      totalAbsDeviation(greedy.resultingAllocation),
+    );
+    for (const breakdown of lp.accounts) {
+      expect(breakdown.finalTotal).toBe(breakdown.currentTotal + breakdown.contribution);
+    }
+  });
+
+  it("ignores minTradeCents with a warning instead of silently mis-solving", () => {
+    const { portfolio, targets, contributions } = loadFixture(sellRequiredFixture);
+    const result = rebalance(portfolio, targets, {
+      contributions,
+      allowSelling: true,
+      optimizer: "lp",
+      minTradeCents: 500,
+    });
+
+    expect(result.warnings.some((w) => w.includes("minTradeCents") && w.includes("ignored"))).toBe(true);
+    expect(result.trades).toHaveLength(2);
+  });
+
+  it("rejects an unknown optimizer", () => {
+    const { portfolio, targets } = loadExample();
+    expect(() =>
+      rebalance(portfolio, targets, { contributions: [], optimizer: "quantum" as never }),
+    ).toThrow(/optimizer/);
+  });
+});
+
 describe("rebalance - selling guards", () => {
   // Overweight stocks live only in the taxable account: without
   // sellInTaxableAccounts nothing may be sold, with it the taxable account
