@@ -1,0 +1,90 @@
+# The web UI (`apps/web`)
+
+A React single-page app over `@rebalancer/solver`: build a portfolio and
+targets in the browser, watch the solver's trades update live, download the
+whole thing as a JSON file. There is **no backend and no storage** — all
+state lives in the page, and reloading clears it (that's by design; the
+JSON download is the persistence story).
+
+## Run it locally
+
+```
+pnpm install     # once, at the repo root (Node 24 — run `fnm use` first)
+pnpm dev         # start the Vite dev server
+```
+
+Then open **http://localhost:5173**. The page loads with the built-in
+example household (the same placeholder data as
+`packages/solver/fixtures/example.json`) so there is something to look at
+immediately; use **Start empty** to build from scratch.
+
+To test a production build instead of the dev server:
+
+```
+pnpm --filter @rebalancer/web run build
+pnpm --filter @rebalancer/web exec vite preview   # serves dist/ on http://localhost:4173
+```
+
+Tests and types:
+
+```
+pnpm run test        # all packages, including the web app's vitest + testing-library suite
+pnpm run typecheck
+pnpm --filter @rebalancer/web run test:watch
+```
+
+## What it does
+
+The page is one screen, top to bottom:
+
+1. **Portfolio** — the builder. Asset classes (name + tax preference),
+   funds (ticker, optional full name, asset class), and one card per
+   account: its tax type, which funds are *buyable* there, the preference
+   order (#1 is bought first and receives leftover cash; the arrows
+   reorder), and each position's current dollar value. Removals cascade —
+   deleting an asset class deletes its funds, their holdings, menu entries,
+   and its target — so the document always stays referentially intact.
+2. **Plan** — targets per asset class (with a live "must total 100%"
+   check), contributions per account (money never moves between accounts,
+   so there is no lump-sum field), and the solver options: selling toggles,
+   tolerance band, minimum sell-funded trade, optimizer.
+3. **Results** — recomputed by `rebalance()` on every edit. Trades grouped
+   by account with each trade's human-readable reason shown in full, the
+   portfolio-by-asset-class table (current → target → trades → final →
+   vs target), per-account before/after position tables, and any warnings.
+   If the current inputs are invalid (targets don't total 100%, say), the
+   solver's own error message renders where the results would be.
+
+**Download JSON / Load JSON…** in the header save and restore the complete
+scenario. The file is the solver's canonical `Scenario` document — exactly
+what the CLI reads — so a downloaded file works directly with
+`pnpm solve -p <file>`, and any fixture in `packages/solver/fixtures/`
+loads straight into the UI. Downloads carry an `"_format":
+"rebalancer-scenario-v1"` comment key (the validator ignores `_`-prefixed
+keys) so future format changes can recognize old files.
+
+## How it's built
+
+- One state object: the whole `Scenario` lives in a single React
+  `useState`; every editor edits it through pure updater functions
+  (`scenario-edit.ts`) that are unit-tested without the DOM.
+- The UI computes nothing about money. It calls only the solver's public
+  API (`rebalance`, `validateScenario`) and renders what comes back; there
+  are no rollups, gap calculations, or placement decisions in the React
+  code. Money is integer cents end to end — typed text is parsed to cents
+  textually (`parse.ts`, no float math) and formatted to dollars only at
+  render (`format.ts`).
+- No network calls, no `localStorage`/`sessionStorage`, no `<form>`
+  submits. Market values come from user input, always.
+- Tests are colocated `*.test.ts(x)` files run by vitest with
+  testing-library in jsdom: pure-function tests for parsing and scenario
+  updates, rendering tests against hand-written `RebalanceResult`s, and
+  end-to-end user-event flows (build a portfolio from a blank page and see
+  the solver's trade appear; upload a file; break the targets total and
+  recover).
+
+## Not built (yet)
+
+CSV/brokerage-export import with fund→asset-class mapping, URL-hash state
+sharing, copy-trades-as-text/CSV export, and prices/shares/cost basis
+(a holding is just fund → dollars, as in the solver).
