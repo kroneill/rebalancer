@@ -111,6 +111,26 @@ describe("rebalance - core invariants", () => {
     }
   });
 
+  it("buys the earliest availableFundIds entry when several funds share the asset class", () => {
+    const portfolio: Portfolio = {
+      assetClasses: [{ id: "stocks", name: "Stocks" }],
+      funds: [
+        { id: "fund_a", name: "Fund A", assetClassId: "stocks" },
+        { id: "fund_b", name: "Fund B", assetClassId: "stocks" },
+      ],
+      accounts: [
+        // fund_b listed first: availableFundIds order, not id order, must win.
+        { id: "acct", name: "Account", taxType: "taxable", availableFundIds: ["fund_b", "fund_a"] },
+      ],
+      holdings: [],
+    };
+    const targets: Target[] = [{ assetClassId: "stocks", weight: 10000 }];
+    const result = rebalance(portfolio, targets, { contributions: [{ accountId: "acct", amount: 10000 }] });
+
+    expect(result.trades).toHaveLength(1);
+    expect(result.trades[0]!.fundId).toBe("fund_b");
+  });
+
   it("rejects targets that do not sum to 10000 bps", () => {
     const { portfolio } = loadExample();
     const badTargets: Target[] = [{ assetClassId: "us_stocks", weight: 9000 }];

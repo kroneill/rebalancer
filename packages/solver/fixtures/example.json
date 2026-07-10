@@ -22,36 +22,31 @@
       "id": "taxable",
       "name": "Taxable Brokerage",
       "taxType": "taxable",
-      "availableFundIds": ["vti", "vxus"],
-      "fundPreference": ["vti", "vxus"]
+      "availableFundIds": ["vti", "vxus"]
     },
     {
       "id": "roth_ira",
       "name": "Roth IRA",
       "taxType": "tax_free",
-      "availableFundIds": ["avuv", "vti", "bnd"],
-      "fundPreference": ["avuv", "vti", "bnd"]
+      "availableFundIds": ["avuv", "vti", "bnd"]
     },
     {
       "id": "spouse_ira",
       "name": "Spouse Traditional IRA",
       "taxType": "tax_deferred",
-      "availableFundIds": ["bnd", "bndx", "vti"],
-      "fundPreference": ["bnd", "bndx", "vti"]
+      "availableFundIds": ["bnd", "bndx", "vti"]
     },
     {
       "id": "k401",
       "name": "401(k)",
       "taxType": "tax_deferred",
-      "availableFundIds": ["bnd", "vti"],
-      "fundPreference": ["bnd", "vti"]
+      "availableFundIds": ["bnd", "vti"]
     },
     {
       "id": "hsa",
       "name": "HSA",
       "taxType": "tax_free",
-      "availableFundIds": ["vti", "vxus", "avuv"],
-      "fundPreference": ["vti", "avuv", "vxus"]
+      "availableFundIds": ["vti", "avuv", "vxus"]
     }
   ],
 

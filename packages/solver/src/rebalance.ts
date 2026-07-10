@@ -40,8 +40,8 @@ import type {
  *      least one fund in that asset class, rank them by the asset class's
  *      taxPreference (e.g. bonds usually want prefer_tax_advantaged
  *      accounts first) and then by account id. Buy into the highest-ranked
- *      account, choosing the highest-ranked fund in that account's
- *      fundPreference among funds belonging to the target asset class.
+ *      account, choosing the earliest fund in that account's ordered
+ *      availableFundIds among funds belonging to the target asset class.
  *      Spend min(gap, remaining cash in that account). This is a "waterfall"
  *      because each pass drains the biggest gap first; once a gap is fully
  *      closed or every eligible account runs dry, the next-biggest gap
@@ -54,7 +54,7 @@ import type {
  *      sitting idle in an account. So once every gap reachable from an
  *      account's contribution has been closed (or is permanently blocked),
  *      any cash still remaining in that account is invested into that
- *      account's single top-fundPreference fund, with a warning explaining
+ *      account's single most-preferred fund (availableFundIds[0]), with a warning explaining
  *      why (this can happen when a contribution is larger than needed to
  *      close that account's share of the gaps).
  *
@@ -178,8 +178,7 @@ export function rebalance(portfolio: Portfolio, targets: Target[], options: Reba
     const remaining = accountCash.get(account.id) ?? 0;
     if (remaining <= 0) continue;
 
-    const fallbackFundId =
-      account.fundPreference.find((id) => account.availableFundIds.includes(id)) ?? account.availableFundIds[0];
+    const fallbackFundId = account.availableFundIds[0];
     if (!fallbackFundId) {
       throw new Error(`Account "${account.id}" received a contribution but has no availableFundIds to invest it in.`);
     }
@@ -190,7 +189,7 @@ export function rebalance(portfolio: Portfolio, targets: Target[], options: Reba
       fund,
       remaining,
       `Remaining reachable gaps for "${account.name}" are closed; investing leftover contribution in ` +
-        `${fund.ticker ?? fund.name}, its top fund preference.`,
+        `${fund.ticker ?? fund.name}, its most-preferred fund.`,
     );
     warnings.push(
       `Account "${account.name}" had ${formatDollars(remaining)} left after closing every reachable gap; ` +
@@ -278,26 +277,13 @@ function accountHasFundFor(account: Account, assetClassId: string, fundsById: Ma
   return account.availableFundIds.some((id) => fundsById.get(id)?.assetClassId === assetClassId);
 }
 
-/** Highest-ranked fund in `account.fundPreference` among its available funds for `assetClassId`. */
+/** Earliest fund in the account's ordered `availableFundIds` belonging to `assetClassId`. */
 function pickFund(account: Account, assetClassId: string, fundsById: Map<string, Fund>): Fund {
-  const candidates = account.availableFundIds
-    .map((id) => fundsById.get(id))
-    .filter((f): f is Fund => f !== undefined && f.assetClassId === assetClassId);
-
-  candidates.sort((a, b) => {
-    const rankA = account.fundPreference.indexOf(a.id);
-    const rankB = account.fundPreference.indexOf(b.id);
-    const normA = rankA === -1 ? Number.MAX_SAFE_INTEGER : rankA;
-    const normB = rankB === -1 ? Number.MAX_SAFE_INTEGER : rankB;
-    if (normA !== normB) return normA - normB;
-    return a.id.localeCompare(b.id);
-  });
-
-  const best = candidates[0];
-  if (!best) {
-    throw new Error(`Account "${account.id}" has no available fund for asset class "${assetClassId}".`);
+  for (const id of account.availableFundIds) {
+    const fund = fundsById.get(id);
+    if (fund !== undefined && fund.assetClassId === assetClassId) return fund;
   }
-  return best;
+  throw new Error(`Account "${account.id}" has no available fund for asset class "${assetClassId}".`);
 }
 
 /** Lower rank = more preferred account for this asset class's tax preference. */
@@ -331,11 +317,6 @@ function validate(portfolio: Portfolio, targets: Target[], options: RebalanceOpt
     for (const fundId of account.availableFundIds) {
       if (!fundIds.has(fundId)) {
         throw new Error(`Account "${account.id}" availableFundIds references unknown fund "${fundId}".`);
-      }
-    }
-    for (const fundId of account.fundPreference) {
-      if (!fundIds.has(fundId)) {
-        throw new Error(`Account "${account.id}" fundPreference references unknown fund "${fundId}".`);
       }
     }
   }

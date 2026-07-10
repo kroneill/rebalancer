@@ -31,10 +31,14 @@ export interface Account {
   id: string;
   name: string;
   taxType: TaxType;
-  /** Fund ids that can be bought in this account. */
+  /**
+   * Fund ids that can be bought in this account, ordered most-preferred
+   * first. When several available funds belong to the same asset class, the
+   * earliest one is bought; the very first entry is also the fallback for
+   * investing leftover contribution cash. (A fund can still be *held* without
+   * appearing here — holdings may reference funds that are no longer buyable.)
+   */
   availableFundIds: string[];
-  /** Fund ids ordered most- to least-preferred, used to break ties within an asset class. */
-  fundPreference: string[];
 }
 
 export interface Holding {
