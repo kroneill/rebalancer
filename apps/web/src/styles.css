@@ -1,0 +1,71 @@
+/*
+ * Design language: a restrained, data-dense financial tool. Cool neutrals,
+ * one ink-blue accent, tabular figures for every number so columns align.
+ * Buy/sell colors are backed by explicit BUY/SELL text labels everywhere, so
+ * color is never the only signal.
+ */
+
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --border: #d7dbe0;
+  --border-strong: #b6bcc4;
+  --text: #1a2129;
+  --text-muted: #5b6472;
+  --accent: #1f4e8c;
+  --accent-soft: #e8eef7;
+  --buy: #0a6e3d;
+  --sell: #b3261e;
+  --warn-bg: #fdf3e0;
+  --warn-border: #d9a53f;
+  --mono: "SF Mono", SFMono-Regular, ui-monospace, "Cascadia Mono",
+    "Roboto Mono", Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.app {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 24px 20px 80px;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.app-header .tagline {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  max-width: 60ch;
+}
+
+/* Numbers align in columns everywhere they appear. */
+table,
+input[type="text"],
+input[type="number"],
+.num {
+  font-variant-numeric: tabular-nums;
+}
