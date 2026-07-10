@@ -245,32 +245,54 @@ export function rebalance(portfolio: Portfolio, targets: Target[], options: Reba
       a.fundId.localeCompare(b.fundId),
   );
 
-  const warnings = allocation.warnings.map((w) => {
+  // Warnings are for things the user can act on. A gap left open merely
+  // because contributions ran out is not one of them — the result's
+  // allocation data already shows every shortfall — so only structural
+  // problems are reported: no account offers the class at all, the accounts
+  // that do got no cash, or selling was enabled but blocked.
+  const warnings: string[] = [];
+  for (const w of allocation.warnings) {
     switch (w.kind) {
       case "unreachable_gap": {
         const assetClass = assetClassesById.get(w.assetClassId)!;
-        if (!allowSelling) {
-          return (
-            `No account with remaining contribution cash offers a fund for "${assetClass.name}"; ` +
-            `${formatDollars(w.remainingGap)} of gap will remain unclosed this run.`
+        if (allowSelling) {
+          warnings.push(
+            `${assetClass.name} is still ${formatDollars(w.remainingGap)} under target even with selling enabled` +
+              (sellInTaxableAccounts ? "." : " (selling in taxable accounts is disabled)."),
+          );
+          break;
+        }
+        const offering = portfolio.accounts
+          .filter((account) => accountHasFundFor(account, w.assetClassId, fundsById))
+          .sort((a, b) => a.id.localeCompare(b.id));
+        if (offering.length === 0) {
+          warnings.push(
+            `${assetClass.name} is ${formatDollars(w.remainingGap)} under target, but no account offers a fund for it.`,
+          );
+        } else if (offering.every((account) => (accountCash.get(account.id) ?? 0) === 0)) {
+          const names = offering.map((account) => account.name).join(", ");
+          warnings.push(
+            `${assetClass.name} is ${formatDollars(w.remainingGap)} under target, but ` +
+              (offering.length === 1
+                ? `only ${names} offers a fund for it, and it received no contribution.`
+                : `the accounts offering a fund for it (${names}) received no contributions.`),
           );
         }
-        return (
-          `Even with selling enabled, ${formatDollars(w.remainingGap)} of the gap for "${assetClass.name}" ` +
-          `cannot be closed: no account that offers a fund for it holds enough sellable overweight positions` +
-          (sellInTaxableAccounts ? "." : " (selling in taxable accounts is disabled).")
-        );
+        // Otherwise: funded accounts offer it and the cash simply went to
+        // bigger gaps — visible in the allocation, not warning-worthy.
+        break;
       }
       case "leftover_cash": {
         const account = accountsById.get(w.accountId)!;
         const fund = fundsById.get(account.availableFundIds[0]!)!;
-        return (
-          `Account "${account.name}" had ${formatDollars(w.amount)} left after closing every reachable gap; ` +
-          `invested it in ${fund.ticker ?? fund.name} rather than leaving it uninvested.`
+        warnings.push(
+          `${account.name} had ${formatDollars(w.amount)} of contribution left after closing every reachable gap; ` +
+            `invested it in ${fund.ticker ?? fund.name}, its most-preferred fund.`,
         );
+        break;
       }
     }
-  });
+  }
 
   // --- resulting allocation & deviation, post-trade ---
   const resultingTotals = new Map<string, number>();
