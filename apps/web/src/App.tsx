@@ -2,7 +2,9 @@ import { rebalance } from "@rebalancer/solver";
 import type { RebalanceResult, Scenario } from "@rebalancer/solver";
 import { useMemo, useState } from "react";
 import { demoScenario } from "./demo-scenario.ts";
+import { PortfolioEditor } from "./PortfolioEditor.tsx";
 import { ResultView } from "./ResultView.tsx";
+import { emptyScenario } from "./scenario-edit.ts";
 import { ContributionsEditor, OptionsEditor, TargetsEditor } from "./ScenarioEditor.tsx";
 
 type Outcome = { result: RebalanceResult; error?: undefined } | { result?: undefined; error: string };
@@ -28,15 +30,27 @@ export function App() {
   return (
     <main className="app">
       <header className="app-header">
-        <h1>Rebalancer</h1>
-        <p className="tagline">
-          Multi-account portfolio rebalancing. Everything runs in this page —
-          nothing is uploaded, and reloading clears it.
-        </p>
+        <div>
+          <h1>Rebalancer</h1>
+          <p className="tagline">
+            Multi-account portfolio rebalancing. Everything runs in this page —
+            nothing is uploaded, and reloading clears it.
+          </p>
+        </div>
+        <div className="header-actions">
+          <button type="button" onClick={() => setScenario(demoScenario)}>
+            Load example
+          </button>
+          <button type="button" onClick={() => setScenario(emptyScenario())}>
+            Start empty
+          </button>
+        </div>
       </header>
 
+      <PortfolioEditor scenario={scenario} onChange={setScenario} />
+
       <section aria-labelledby="scenario-heading">
-        <h2 id="scenario-heading">Scenario</h2>
+        <h2 id="scenario-heading">Plan</h2>
         <div className="editor-grid">
           <TargetsEditor scenario={scenario} onChange={setScenario} />
           <ContributionsEditor scenario={scenario} onChange={setScenario} />

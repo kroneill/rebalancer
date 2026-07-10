@@ -44,6 +44,37 @@ test("typing a contribution feeds the solver and shows up in the account breakdo
   expect(within(accounts).getByText(/\+\$1,000\.00 cash in/)).toBeInTheDocument();
 });
 
+test("a portfolio built from scratch in the UI produces trades", async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await user.click(screen.getByRole("button", { name: "Start empty" }));
+  expect(screen.getByText("Can’t rebalance yet")).toBeInTheDocument();
+
+  // Build: one asset class, one fund, one tax-deferred account holding $900.
+  await user.type(screen.getByLabelText("New asset class name"), "US Stocks");
+  await user.click(screen.getByRole("button", { name: "Add class" }));
+
+  await user.type(screen.getByLabelText("New fund ticker"), "vti");
+  await user.click(screen.getByRole("button", { name: "Add fund" }));
+
+  await user.type(screen.getByLabelText("New account name"), "My IRA");
+  await user.selectOptions(screen.getByLabelText("Tax type for new account"), "tax_deferred");
+  await user.click(screen.getByRole("button", { name: "Add account" }));
+
+  await user.click(screen.getByLabelText("VTI buyable in My IRA"));
+  await user.type(screen.getByLabelText("Current value of VTI in My IRA"), "900");
+
+  // Plan: 100% US Stocks, $100 contribution.
+  await user.type(screen.getByLabelText("Target weight for US Stocks"), "100");
+  await user.type(screen.getByLabelText("Contribution to My IRA"), "100");
+
+  const trades = screen.getByRole("region", { name: "Trades" });
+  expect(within(trades).getByText("BUY")).toBeInTheDocument();
+  expect(within(trades).getByText("$100.00")).toBeInTheDocument();
+  expect(within(trades).getByRole("heading", { name: /My IRA/ })).toBeInTheDocument();
+});
+
 test("allow selling produces sell trades for the drifted demo portfolio", async () => {
   const user = userEvent.setup();
   render(<App />);

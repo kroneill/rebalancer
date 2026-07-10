@@ -49,6 +49,19 @@ body {
   padding: 24px 20px 80px;
 }
 
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .app-header h1 {
   margin: 0;
   font-size: 22px;
@@ -363,6 +376,125 @@ select {
 
 .total-line.total-bad .num {
   color: var(--sell);
+}
+
+/* Buttons */
+
+button {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 550;
+  padding: 5px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+button:disabled {
+  color: var(--text-muted);
+  opacity: 0.6;
+  cursor: default;
+}
+
+.remove-button {
+  padding: 3px 8px;
+  color: var(--text-muted);
+}
+
+.remove-button:hover:not(:disabled) {
+  border-color: var(--sell);
+  color: var(--sell);
+}
+
+/* Portfolio builder */
+
+.field-row input[type="text"] {
+  font: inherit;
+  font-size: 13.5px;
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.field-row .ticker-input {
+  flex: 0 0 76px;
+  font-family: var(--mono);
+  text-transform: uppercase;
+}
+
+.add-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 10px;
+  flex-wrap: wrap;
+}
+
+.add-row input[type="text"] {
+  font: inherit;
+  font-size: 13.5px;
+  flex: 1;
+  min-width: 140px;
+  padding: 4px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.account-card {
+  margin-bottom: 12px;
+}
+
+.account-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.account-card-header input[type="text"] {
+  font: inherit;
+  font-size: 15px;
+  font-weight: 650;
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.account-fund-table th[scope="row"] {
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+.preference-cell {
+  white-space: nowrap;
+}
+
+.preference-cell .num {
+  display: inline-block;
+  min-width: 26px;
+  color: var(--text-muted);
+}
+
+.preference-cell button {
+  padding: 1px 7px;
+  margin-left: 4px;
 }
 
 .solve-error {

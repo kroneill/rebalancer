@@ -29,7 +29,10 @@ function buildLookups(scenario: Scenario): Lookups {
   return {
     accountName: (id) => accounts.get(id)?.name ?? id,
     accountTaxType: (id) => accounts.get(id)?.taxType,
-    fundLabel: (id) => funds.get(id)?.ticker ?? funds.get(id)?.name ?? id,
+    fundLabel: (id) => {
+      const fund = funds.get(id);
+      return fund?.ticker || fund?.name || id;
+    },
     fundName: (id) => funds.get(id)?.name ?? id,
     className: (id) => classes.get(id)?.name ?? id,
   };
