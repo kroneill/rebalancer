@@ -69,3 +69,229 @@ input[type="number"],
 .num {
   font-variant-numeric: tabular-nums;
 }
+
+h2 {
+  font-size: 15px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin: 32px 0 10px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.account-heading {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 650;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chip {
+  font-size: 11px;
+  font-weight: 550;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.chip-taxable {
+  border-color: #c9a86a;
+  color: #7a5c1e;
+}
+
+/* Tables */
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th,
+td {
+  padding: 5px 10px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+thead th {
+  font-size: 12px;
+  font-weight: 550;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-strong);
+}
+
+tbody th[scope="row"] {
+  font-weight: 550;
+}
+
+tbody tr {
+  border-bottom: 1px solid var(--border);
+}
+
+tbody tr:last-child {
+  border-bottom: none;
+}
+
+.num-col {
+  text-align: right;
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+thead .num-col {
+  font-family: var(--sans);
+  font-size: 12px;
+}
+
+.total-row {
+  border-top: 1.5px solid var(--border-strong);
+  font-weight: 650;
+}
+
+.total-row .cash-in {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.on-target {
+  color: var(--text-muted);
+}
+
+/* Trade list — the product. The reason gets full text weight, not a tooltip. */
+
+.trade-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.trade {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "action fund amount"
+    ".      reason reason";
+  column-gap: 12px;
+  row-gap: 2px;
+  align-items: baseline;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.trade:last-child {
+  border-bottom: none;
+}
+
+.trade-action {
+  grid-area: action;
+  justify-self: start;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.trade-buy .trade-action {
+  color: var(--buy);
+  background: #e4f3ea;
+}
+
+.trade-sell .trade-action {
+  color: var(--sell);
+  background: #fbe9e7;
+}
+
+.trade-fund {
+  grid-area: fund;
+  min-width: 0;
+}
+
+.trade-fund strong {
+  font-family: var(--mono);
+  font-size: 13.5px;
+}
+
+.trade-fund-name {
+  color: var(--text-muted);
+  margin-left: 8px;
+}
+
+.trade-amount {
+  grid-area: amount;
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.trade-buy .trade-amount {
+  color: var(--buy);
+}
+
+.trade-sell .trade-amount {
+  color: var(--sell);
+}
+
+.trade-reason {
+  grid-area: reason;
+  margin: 0;
+  color: var(--text-muted);
+  max-width: 72ch;
+}
+
+.empty-note {
+  color: var(--text-muted);
+}
+
+/* Warnings — reserved for actionable problems, so make them loud. */
+
+.warnings {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-top: 24px;
+}
+
+.warnings h2 {
+  margin: 0 0 6px;
+  color: #7a5c1e;
+}
+
+.warnings ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+@media (max-width: 560px) {
+  .trade {
+    grid-template-columns: 52px minmax(0, 1fr);
+    grid-template-areas:
+      "action amount"
+      "fund   fund"
+      "reason reason";
+  }
+
+  .trade-amount {
+    justify-self: end;
+  }
+}
