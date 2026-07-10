@@ -1,7 +1,13 @@
 name: CI
 
+# pull_request tests the merge preview (this PR combined with current main),
+# so two individually-green PRs can't break main in combination, and it also
+# covers PRs from forks. push is limited to main so each PR-branch push
+# doesn't run the suite twice; the main run confirms every merge.
 on:
   push:
+    branches: [main]
+  pull_request:
 
 jobs:
   test:
