@@ -1,3 +1,20 @@
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import type { DragEndEvent } from "@dnd-kit/core";
+import { restrictToParentElement, restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import type { Scenario, TaxPreference, TaxType } from "@rebalancer/solver";
 import { useState } from "react";
 import { MoneyInput } from "./inputs.tsx";
@@ -5,10 +22,10 @@ import {
   addAccount,
   addAssetClass,
   addFund,
-  moveFundPreference,
   removeAccount,
   removeAssetClass,
   removeFund,
+  reorderFundPreference,
   setFundAvailability,
   updateAccount,
   updateAssetClass,
@@ -259,92 +276,91 @@ function AccountFundList({ scenario, onChange, accountId }: EditorProps & { acco
     holdings.filter((h) => h.accountId === accountId).map((h) => [h.fundId, h.value]),
   );
 
-  const rows = [
-    ...account.availableFundIds.map((fundId) => ({ fundId, buyable: true })),
-    ...funds
-      .filter((f) => !account.availableFundIds.includes(f.id) && holdingByFundId.has(f.id))
-      .map((f) => ({ fundId: f.id, buyable: false })),
-  ];
-  const inAccount = new Set(rows.map((row) => row.fundId));
+  const heldOnlyFundIds = funds
+    .filter((f) => !account.availableFundIds.includes(f.id) && holdingByFundId.has(f.id))
+    .map((f) => f.id);
+  const inAccount = new Set([...account.availableFundIds, ...heldOnlyFundIds]);
   const addable = funds.filter((f) => !inAccount.has(f.id));
 
   const removeFromAccount = (fundId: string) =>
     onChange(withHolding(setFundAvailability(scenario, account.id, fundId, false), account.id, fundId, 0));
 
+  const sensors = useSensors(
+    // A few px of slop so a plain click on the handle doesn't start a drag.
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const onDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return;
+    const toIndex = account.availableFundIds.indexOf(String(over.id));
+    if (toIndex === -1) return;
+    onChange(reorderFundPreference(scenario, account.id, String(active.id), toIndex));
+  };
+
+  const rowFor = (fundId: string) => ({
+    valueCents: holdingByFundId.get(fundId) ?? 0,
+    onValue: (value: number) => onChange(withHolding(scenario, account.id, fundId, value)),
+    onRemove: () => removeFromAccount(fundId),
+  });
+
   return (
     <>
       {funds.length === 0 ? (
         <p className="editor-hint">Add funds to give this account something to hold or buy.</p>
-      ) : rows.length === 0 ? (
+      ) : account.availableFundIds.length === 0 && heldOnlyFundIds.length === 0 ? (
         <p className="editor-hint">No funds in this account yet — add one below.</p>
       ) : (
-        <div className="table-scroll">
-          <table className="account-fund-table">
-            <thead>
-              <tr>
-                <th scope="col">Fund</th>
-                <th scope="col">Preference</th>
-                <th scope="col" className="num-col">Current value</th>
-                <th scope="col">
-                  <span className="visually-hidden">Remove</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(({ fundId, buyable }) => {
-                const label = fundLabel(fundId);
-                const rank = account.availableFundIds.indexOf(fundId);
-                return (
-                  <tr key={fundId}>
-                    <th scope="row">{label}</th>
-                    <td className="preference-cell">
-                      {buyable ? (
-                        <>
-                          <span className="num">#{rank + 1}</span>
-                          <button
-                            type="button"
-                            aria-label={`Prefer ${label} more in ${account.name}`}
-                            disabled={rank === 0}
-                            onClick={() => onChange(moveFundPreference(scenario, account.id, fundId, -1))}
-                          >
-                            ↑
-                          </button>
-                          <button
-                            type="button"
-                            aria-label={`Prefer ${label} less in ${account.name}`}
-                            disabled={rank === account.availableFundIds.length - 1}
-                            onClick={() => onChange(moveFundPreference(scenario, account.id, fundId, 1))}
-                          >
-                            ↓
-                          </button>
-                        </>
-                      ) : (
-                        <span className="chip">held — not buyable</span>
-                      )}
-                    </td>
-                    <td className="num-col">
-                      <MoneyInput
-                        cents={holdingByFundId.get(fundId) ?? 0}
-                        onCents={(value) => onChange(withHolding(scenario, account.id, fundId, value))}
-                        label={`Current value of ${label} in ${account.name}`}
-                      />
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="remove-button"
-                        aria-label={`Remove ${label} from ${account.name}`}
-                        title="Removes this fund from the account (menu and holding)"
-                        onClick={() => removeFromAccount(fundId)}
-                      >
-                        ✕
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="fund-list">
+          <div className="fund-row fund-list-header" aria-hidden="true">
+            <span />
+            <span>Fund</span>
+            <span className="fund-value-heading">Current value</span>
+            <span />
+          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+            onDragEnd={onDragEnd}
+          >
+            <SortableContext items={account.availableFundIds} strategy={verticalListSortingStrategy}>
+              <ul className="fund-rows">
+                {account.availableFundIds.map((fundId, index) => (
+                  <SortableFundRow
+                    key={fundId}
+                    fundId={fundId}
+                    label={fundLabel(fundId)}
+                    accountName={account.name}
+                    rank={index + 1}
+                    {...rowFor(fundId)}
+                  />
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
+          {heldOnlyFundIds.length > 0 && (
+            <ul className="fund-rows">
+              {heldOnlyFundIds.map((fundId) => (
+                <li className="fund-row" key={fundId}>
+                  <span className="drag-cell">
+                    <span className="chip">held</span>
+                  </span>
+                  <span className="fund-row-label" title="Held but not buyable in this account">
+                    {fundLabel(fundId)} <span className="editor-hint-inline">not buyable</span>
+                  </span>
+                  <span className="fund-value-cell">
+                    <MoneyInput
+                      cents={rowFor(fundId).valueCents}
+                      onCents={rowFor(fundId).onValue}
+                      label={`Current value of ${fundLabel(fundId)} in ${account.name}`}
+                    />
+                  </span>
+                  <RemoveFundButton label={fundLabel(fundId)} accountName={account.name} onRemove={rowFor(fundId).onRemove} />
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
       {addable.length > 0 && (
@@ -367,6 +383,82 @@ function AccountFundList({ scenario, onChange, accountId }: EditorProps & { acco
         </div>
       )}
     </>
+  );
+}
+
+function RemoveFundButton({
+  label,
+  accountName,
+  onRemove,
+}: {
+  label: string;
+  accountName: string;
+  onRemove: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="remove-button"
+      aria-label={`Remove ${label} from ${accountName}`}
+      title="Removes this fund from the account (menu and holding)"
+      onClick={onRemove}
+    >
+      ✕
+    </button>
+  );
+}
+
+/**
+ * One draggable row of an account's buyable menu. The grip is the only drag
+ * activator, so the money input and buttons stay ordinary controls; it is a
+ * real button, so keyboard users can focus it and reorder with
+ * space + arrow keys (dnd-kit's keyboard sensor).
+ */
+function SortableFundRow({
+  fundId,
+  label,
+  accountName,
+  rank,
+  valueCents,
+  onValue,
+  onRemove,
+}: {
+  fundId: string;
+  label: string;
+  accountName: string;
+  rank: number;
+  valueCents: number;
+  onValue: (value: number) => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
+    id: fundId,
+  });
+  return (
+    <li
+      ref={setNodeRef}
+      className={`fund-row${isDragging ? " fund-row-dragging" : ""}`}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+    >
+      <span className="drag-cell">
+        <button
+          type="button"
+          ref={setActivatorNodeRef}
+          className="drag-handle"
+          aria-label={`Reorder ${label} in ${accountName} (position ${rank})`}
+          {...attributes}
+          {...listeners}
+        >
+          ⠿
+        </button>
+        <span className="num rank">#{rank}</span>
+      </span>
+      <span className="fund-row-label">{label}</span>
+      <span className="fund-value-cell">
+        <MoneyInput cents={valueCents} onCents={onValue} label={`Current value of ${label} in ${accountName}`} />
+      </span>
+      <RemoveFundButton label={label} accountName={accountName} onRemove={onRemove} />
+    </li>
   );
 }
 

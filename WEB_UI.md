@@ -39,9 +39,13 @@ The page is one screen, top to bottom:
 
 1. **Portfolio** — the builder. Asset classes (name + tax preference),
    funds (ticker, optional full name, asset class), and one card per
-   account: its tax type, which funds are *buyable* there, the preference
-   order (#1 is bought first and receives leftover cash; the arrows
-   reorder), and each position's current dollar value. Removals cascade —
+   account: its tax type and just the funds in that account — the buyable
+   menu in preference order (#1 is bought first and receives leftover
+   cash; the ordered list is the solver's only fund-preference input) with
+   each position's current dollar value. Drag a row's grip to reorder (the
+   handle is a real button: space to lift, arrows to move, space to drop);
+   the ＋ Add fund… picker appends a fund as least-preferred, and ✕ removes
+   a fund from the account (menu entry and holding). Removals cascade —
    deleting an asset class deletes its funds, their holdings, menu entries,
    and its target — so the document always stays referentially intact.
 2. **Plan** — targets per asset class (with a live "must total 100%"

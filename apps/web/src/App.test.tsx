@@ -20,7 +20,7 @@ test("breaking the targets total replaces results with an error, fixing it bring
   await user.type(usStocks, "50");
 
   // 50 + 20 + 20 + 10 + 10 = 110% — the indicator and the solver both object.
-  expect(screen.getByRole("status")).toHaveTextContent("110% — must total 100%");
+  expect(screen.getByText(/must total 100%/)).toHaveTextContent("110% — must total 100%");
   const alert = screen.getByRole("alert");
   expect(alert).toHaveTextContent("Can’t rebalance yet");
   expect(screen.queryByRole("region", { name: "Trades" })).not.toBeInTheDocument();
@@ -128,6 +128,21 @@ test("removing a fund from an account clears its menu entry and holding, and it 
   const allocation = screen.getByRole("region", { name: "Portfolio by asset class" });
   const intlRow = within(allocation).getByRole("row", { name: /International Stocks/ });
   expect(within(intlRow).getAllByText("$0.00").length).toBeGreaterThan(0);
+});
+
+test("fund preference order can be changed from the drag handle's keyboard mode", async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  // Taxable Brokerage menu is VTI #1, VXUS #2.
+  const handle = screen.getByLabelText("Reorder VXUS in Taxable Brokerage (position 2)");
+  handle.focus();
+  await user.keyboard(" "); // lift
+  await user.keyboard("{ArrowUp}");
+  await user.keyboard(" "); // drop
+
+  expect(screen.getByLabelText("Reorder VXUS in Taxable Brokerage (position 1)")).toBeInTheDocument();
+  expect(screen.getByLabelText("Reorder VTI in Taxable Brokerage (position 2)")).toBeInTheDocument();
 });
 
 test("allow selling produces sell trades for the drifted demo portfolio", async () => {
