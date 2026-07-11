@@ -6,6 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```
 pnpm install                    # install deps (use over adding deps by hand)
+pnpm dev                        # web UI dev server (http://localhost:5173)
 pnpm run typecheck              # tsc --noEmit in every package
 pnpm run test                   # vitest run in every package (single run)
 pnpm --filter @rebalancer/solver test -- rebalance   # run a single test file/pattern
@@ -18,7 +19,7 @@ Node version is pinned in `.nvmrc` (24); run `fnm use` before working. CI (`.git
 
 ## Architecture
 
-pnpm workspace (`pnpm-workspace.yaml`) with two packages:
+pnpm workspace (`pnpm-workspace.yaml`) with three packages:
 
 - **`packages/solver`** — the rebalancing engine. Pure TypeScript: no DOM, no `fetch`, no filesystem access, no network calls. Deterministic — same input always produces the same output. Its public exports are `rebalance()`, `validateScenario()`, `DEFAULT_TOLERANCE_BPS`, and the domain types in `src/types.ts`; nothing else in `src/` should be imported from outside the package.
   - `src/rebalance.ts` — orchestration: validates input, reduces it to a transportation problem, delegates placement to `allocate()`, translates the resulting per-(account × asset class) deltas into buy/sell `Trade`s with human reasons, and formats warnings. The algorithm (greedy waterfall: buy pass, then opt-in sell pass, governed by a tolerance band) is explained in a comment block at the top. It also does all semantic input validation (targets summing to 10000 bps, referential integrity of ids, non-negative integers) — the solver is the trust boundary, so callers don't need to re-validate.
@@ -27,6 +28,7 @@ pnpm workspace (`pnpm-workspace.yaml`) with two packages:
   - `src/scenario.ts` — `validateScenario(unknown): Scenario` structurally validates an untrusted parsed JSON document (field presence, primitive types, enum membership, unknown-key rejection; keys starting with `_` are ignored as comments). Semantic rules stay in `rebalance()`.
   - `fixtures/example.json` (buy-only golden: a hand-invented household — taxable brokerage, two IRAs, a 401(k), an HSA) and `fixtures/sell-required.json` (selling golden: a drifted portfolio only fixable by selling) are placeholder data, not real portfolios. Both are complete `Scenario` documents — the same shape the CLI reads.
   - `package.json` `main`/`types`/`exports` point directly at `src/index.ts` (not `dist/`) so workspace consumers (the CLI, via `tsx`) don't need a build step in dev. `pnpm run build` still produces a real `dist/` for whenever this is published.
+- **`apps/web`** — React (Vite) UI over the solver; see `WEB_UI.md`. One `Scenario` object in a single `useState` is the entire state: no backend, no URL state, and **no localStorage/sessionStorage** — persistence is the user downloading/uploading the canonical Scenario JSON (same document the CLI reads; downloads carry an ignored `"_format"` comment key). Hard constraints, same spirit as the solver's: the UI imports only `@rebalancer/solver`'s public API and computes nothing about money — no rollups, gap math, or placement decisions in React code (if the UI needs a derived number, the solver should export it); money stays integer cents end-to-end (typed text is parsed textually in `parse.ts`, never via float multiplication; dollars appear only at render via `format.ts`); no `fetch`/network (market values come from user input, always); no HTML `<form>` submits. Structure: `PortfolioEditor`/`ScenarioEditor` build the scenario through pure updaters in `scenario-edit.ts` (removals cascade to keep referential integrity — the solver revalidates anyway and its error message is shown in place of results), `App` runs `rebalance()` on every edit, `ResultView` is pure presentation mirroring the CLI's output structure. Tests: vitest + testing-library under jsdom (`globals: true` is required for testing-library's auto-cleanup).
 - **`apps/cli`** — thin wrapper around the solver, run with `tsx` and `node:util`'s `parseArgs`. It only imports `@rebalancer/solver`'s public API (never reaches into `packages/solver/src` directly), and does all the I/O the solver isn't allowed to do (reading the scenario JSON file from disk). `-p` loads a whole `Scenario` (portfolio + targets + contributions + options); flags are overrides (`-c` replaces the file's contributions; `--sell`, `--sell-taxable`, `--tolerance-bps`, `--min-trade-cents` adjust options).
 
 Money is always an integer number of cents (never a float). Weights/targets are always integer basis points 0–10000 (never a 0–1 fraction).

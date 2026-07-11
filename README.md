@@ -9,8 +9,8 @@ never sells, so it's safe to run any time you add money. With
 preferring tax-advantaged accounts and never touching taxable positions
 unless you explicitly let it.
 
-This is the core engine and a CLI. There is no UI and no CSV import — see
-"Scope" below.
+This is the core engine, a CLI, and a local-only web UI (see
+[WEB_UI.md](WEB_UI.md)). There is no CSV import — see "Scope" below.
 
 ## How it works
 
@@ -99,6 +99,7 @@ property tests holds both implementations to the same optimality bar.
 ```
 packages/solver/    pure TypeScript rebalancing engine — no DOM, no fetch, no fs, no network calls
 apps/cli/            thin CLI wrapper (tsx + node:util parseArgs) around @rebalancer/solver
+apps/web/            React (Vite) UI over the solver — no backend, state lives in the page (WEB_UI.md)
 ```
 
 `packages/solver`'s public exports are `rebalance()`, `validateScenario()`
@@ -128,6 +129,7 @@ pnpm install
 ## Commands
 
 ```
+pnpm dev             # start the web UI dev server (http://localhost:5173)
 pnpm run typecheck   # type-check every package, no emit
 pnpm run test        # run all tests once (vitest + fast-check property tests)
 pnpm run test:watch  # run the solver's tests in watch mode
@@ -182,9 +184,11 @@ Built so far: domain types, the two-pass solver (buy-only by default,
 opt-in selling with tax-aware guards and tolerance bands), the canonical
 JSON scenario format with `validateScenario()`, the test suite (golden
 fixtures + invariant + property-based tests, including a brute-force
-optimality check on the allocator), and the CLI. Not built yet: a UI,
-CSV/brokerage-export parsing, prices/shares/cost-basis (a holding is just
-fund → dollars), and capital-gains-aware sell selection.
+optimality check on the allocator), the CLI, and a local-only web UI
+([WEB_UI.md](WEB_UI.md)) that builds/edits scenarios, solves live, and
+saves/loads the canonical JSON. Not built yet: CSV/brokerage-export
+parsing, prices/shares/cost-basis (a holding is just fund → dollars), and
+capital-gains-aware sell selection.
 
 ## CI
 

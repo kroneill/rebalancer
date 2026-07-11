@@ -1,0 +1,556 @@
+/*
+ * Design language: a restrained, data-dense financial tool. Cool neutrals,
+ * one ink-blue accent, tabular figures for every number so columns align.
+ * Buy/sell colors are backed by explicit BUY/SELL text labels everywhere, so
+ * color is never the only signal.
+ */
+
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --border: #d7dbe0;
+  --border-strong: #b6bcc4;
+  --text: #1a2129;
+  --text-muted: #5b6472;
+  --accent: #1f4e8c;
+  --accent-soft: #e8eef7;
+  --buy: #0a6e3d;
+  --sell: #b3261e;
+  --warn-bg: #fdf3e0;
+  --warn-border: #d9a53f;
+  --mono: "SF Mono", SFMono-Regular, ui-monospace, "Cascadia Mono",
+    "Roboto Mono", Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.app {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 24px 20px 80px;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.app-header .tagline {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  max-width: 60ch;
+}
+
+/* Numbers align in columns everywhere they appear. */
+table,
+input[type="text"],
+input[type="number"],
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+h2 {
+  font-size: 15px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin: 32px 0 10px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.account-heading {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 650;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chip {
+  font-size: 11px;
+  font-weight: 550;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.chip-taxable {
+  border-color: #c9a86a;
+  color: #7a5c1e;
+}
+
+/* Tables */
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th,
+td {
+  padding: 5px 10px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+thead th {
+  font-size: 12px;
+  font-weight: 550;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-strong);
+}
+
+tbody th[scope="row"] {
+  font-weight: 550;
+}
+
+tbody tr {
+  border-bottom: 1px solid var(--border);
+}
+
+tbody tr:last-child {
+  border-bottom: none;
+}
+
+.num-col {
+  text-align: right;
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+thead .num-col {
+  font-family: var(--sans);
+  font-size: 12px;
+}
+
+.total-row {
+  border-top: 1.5px solid var(--border-strong);
+  font-weight: 650;
+}
+
+.total-row .cash-in {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.on-target {
+  color: var(--text-muted);
+}
+
+/* Trade list — the product. The reason gets full text weight, not a tooltip. */
+
+.trade-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.trade {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "action fund amount"
+    ".      reason reason";
+  column-gap: 12px;
+  row-gap: 2px;
+  align-items: baseline;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.trade:last-child {
+  border-bottom: none;
+}
+
+.trade-action {
+  grid-area: action;
+  justify-self: start;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.trade-buy .trade-action {
+  color: var(--buy);
+  background: #e4f3ea;
+}
+
+.trade-sell .trade-action {
+  color: var(--sell);
+  background: #fbe9e7;
+}
+
+.trade-fund {
+  grid-area: fund;
+  min-width: 0;
+}
+
+.trade-fund strong {
+  font-family: var(--mono);
+  font-size: 13.5px;
+}
+
+.trade-fund-name {
+  color: var(--text-muted);
+  margin-left: 8px;
+}
+
+.trade-amount {
+  grid-area: amount;
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.trade-buy .trade-amount {
+  color: var(--buy);
+}
+
+.trade-sell .trade-amount {
+  color: var(--sell);
+}
+
+.trade-reason {
+  grid-area: reason;
+  margin: 0;
+  color: var(--text-muted);
+  max-width: 72ch;
+}
+
+.empty-note {
+  color: var(--text-muted);
+}
+
+/* Scenario editors */
+
+.editor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.editor-card {
+  margin-bottom: 0;
+}
+
+.editor-card h3 {
+  margin: 0 0 2px;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.editor-hint {
+  display: block;
+  margin: 0 0 8px;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 400;
+}
+
+.field-row .editor-hint,
+.check-row .editor-hint {
+  margin-bottom: 0;
+}
+
+.field-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.field-row:last-child {
+  border-bottom: none;
+}
+
+.field-label {
+  font-weight: 550;
+}
+
+.check-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+  font-weight: 550;
+}
+
+.amount-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+}
+
+.amount-input input,
+select {
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 13px;
+  text-align: right;
+  width: 110px;
+  padding: 4px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+select {
+  font-family: var(--sans);
+  text-align: left;
+  width: auto;
+}
+
+.amount-input.invalid input {
+  border-color: var(--sell);
+  background: #fdf0ef;
+}
+
+.total-line {
+  border-top: 1.5px solid var(--border-strong);
+  font-weight: 650;
+}
+
+.total-line.total-ok .num {
+  color: var(--buy);
+}
+
+.total-line.total-bad .num {
+  color: var(--sell);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Buttons */
+
+button {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 550;
+  padding: 5px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+button:disabled {
+  color: var(--text-muted);
+  opacity: 0.6;
+  cursor: default;
+}
+
+.remove-button {
+  padding: 3px 8px;
+  color: var(--text-muted);
+}
+
+.remove-button:hover:not(:disabled) {
+  border-color: var(--sell);
+  color: var(--sell);
+}
+
+/* Portfolio builder */
+
+.field-row input[type="text"] {
+  font: inherit;
+  font-size: 13.5px;
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.field-row .ticker-input {
+  flex: 0 0 76px;
+  font-family: var(--mono);
+  text-transform: uppercase;
+}
+
+.add-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 10px;
+  flex-wrap: wrap;
+}
+
+.add-row input[type="text"] {
+  font: inherit;
+  font-size: 13.5px;
+  flex: 1;
+  min-width: 140px;
+  padding: 4px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.account-card {
+  margin-bottom: 12px;
+}
+
+.account-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.account-card-header input[type="text"] {
+  font: inherit;
+  font-size: 15px;
+  font-weight: 650;
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.account-fund-table th[scope="row"] {
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+.preference-cell {
+  white-space: nowrap;
+}
+
+.preference-cell .num {
+  display: inline-block;
+  min-width: 26px;
+  color: var(--text-muted);
+}
+
+.preference-cell button {
+  padding: 1px 7px;
+  margin-left: 4px;
+}
+
+.solve-error {
+  margin-top: 24px;
+  border-color: var(--sell);
+}
+
+.solve-error h3 {
+  margin: 0 0 4px;
+  color: var(--sell);
+  font-size: 15px;
+}
+
+.solve-error p {
+  margin: 0;
+}
+
+/* Warnings — reserved for actionable problems, so make them loud. */
+
+.warnings {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-top: 24px;
+}
+
+.warnings h2 {
+  margin: 0 0 6px;
+  color: #7a5c1e;
+}
+
+.warnings ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+@media (max-width: 560px) {
+  .trade {
+    grid-template-columns: 52px minmax(0, 1fr);
+    grid-template-areas:
+      "action amount"
+      "fund   fund"
+      "reason reason";
+  }
+
+  .trade-amount {
+    justify-self: end;
+  }
+}
