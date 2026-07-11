@@ -181,11 +181,16 @@ export function withHolding(scenario: Scenario, accountId: string, fundId: strin
   return withPortfolio(scenario, { holdings });
 }
 
-/** A blank slate for building a portfolio from scratch. */
+/**
+ * A blank slate for building a portfolio from scratch. Selling is on by
+ * default in the web UI (the solver's own default stays buy-only);
+ * taxable accounts remain protected until the guard is unchecked.
+ */
 export function emptyScenario(): Scenario {
   return {
     portfolio: { accounts: [], funds: [], assetClasses: [], holdings: [] },
     targets: [],
     contributions: [],
+    options: { allowSelling: true },
   };
 }

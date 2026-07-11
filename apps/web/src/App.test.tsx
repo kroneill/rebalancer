@@ -145,13 +145,31 @@ test("fund preference order can be changed from the drag handle's keyboard mode"
   expect(screen.getByLabelText("Reorder VTI in Taxable Brokerage (position 2)")).toBeInTheDocument();
 });
 
-test("allow selling produces sell trades for the drifted demo portfolio", async () => {
+test("selling is on by default; turning it off in Settings removes sells and flags it", async () => {
   const user = userEvent.setup();
   render(<App />);
 
   const trades = () => screen.getByRole("region", { name: "Trades" });
-  expect(within(trades()).queryAllByText("SELL")).toHaveLength(0);
-
-  await user.click(screen.getByLabelText(/Allow selling/));
   expect(within(trades()).getAllByText("SELL").length).toBeGreaterThan(0);
+
+  await user.click(screen.getByRole("button", { name: /Settings/ }));
+  await user.click(screen.getByLabelText(/Allow selling/));
+
+  expect(within(trades()).queryAllByText("SELL")).toHaveLength(0);
+  // Tucked-away settings must never invisibly shape results.
+  expect(within(trades()).getByText(/selling off/)).toBeInTheDocument();
+});
+
+test("taxable accounts are protected from sells until the guard is unchecked", async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  const trades = () => screen.getByRole("region", { name: "Trades" });
+  const taxableTradeCard = () =>
+    within(trades()).queryByRole("heading", { name: /Taxable Brokerage/ })?.closest(".card") as HTMLElement | null;
+  expect(taxableTradeCard() === null || within(taxableTradeCard()!).queryAllByText("SELL").length === 0).toBe(true);
+
+  await user.click(screen.getByLabelText(/Avoid selling in taxable accounts/));
+
+  expect(within(taxableTradeCard()!).getAllByText("SELL").length).toBeGreaterThan(0);
 });

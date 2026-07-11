@@ -19,7 +19,7 @@ export function OptionsEditor({ scenario, onChange }: EditorProps) {
   const options = scenario.options ?? {};
   return (
     <div className="card editor-card">
-      <h3>Options</h3>
+      <h3>Settings</h3>
       <label className="check-row">
         <input
           type="checkbox"
@@ -28,18 +28,10 @@ export function OptionsEditor({ scenario, onChange }: EditorProps) {
         />
         <span>
           Allow selling
-          <span className="editor-hint">Rotate overweight positions into underweight ones.</span>
-        </span>
-      </label>
-      <label className="check-row">
-        <input
-          type="checkbox"
-          checked={options.sellInTaxableAccounts ?? false}
-          onChange={(event) => onChange(withOptions(scenario, { sellInTaxableAccounts: event.target.checked }))}
-        />
-        <span>
-          Sell in taxable accounts
-          <span className="editor-hint">May realize capital gains; implies selling.</span>
+          <span className="editor-hint">
+            Rotate overweight positions into underweight ones. Taxable accounts are governed by the checkbox on the
+            main page.
+          </span>
         </span>
       </label>
       <div className="field-row">
