@@ -40,7 +40,7 @@ export function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const outcome = useMemo(() => solve(scenario), [scenario]);
-  const avoidTaxableSells = !(scenario.options?.sellInTaxableAccounts ?? false);
+  const allowTaxableSells = scenario.options?.sellInTaxableAccounts ?? false;
 
   const onFileChosen = async (file: File | undefined) => {
     if (!file) return;
@@ -113,13 +113,14 @@ export function App() {
       <label className="check-row taxable-guard">
         <input
           type="checkbox"
-          checked={avoidTaxableSells}
-          onChange={(event) => setScenario(withOptions(scenario, { sellInTaxableAccounts: !event.target.checked }))}
+          aria-label="Allow selling in taxable accounts"
+          checked={allowTaxableSells}
+          onChange={(event) => setScenario(withOptions(scenario, { sellInTaxableAccounts: event.target.checked }))}
         />
         <span>
-          Avoid selling in taxable accounts
+          Allow selling in taxable accounts
           <span className="editor-hint">
-            Sells there can realize capital gains — keep this on to rebalance only tax-advantaged accounts by selling.
+            Sells there can realize capital gains — uncheck to rebalance only tax-advantaged accounts by selling.
           </span>
         </span>
       </label>

@@ -183,14 +183,15 @@ export function withHolding(scenario: Scenario, accountId: string, fundId: strin
 
 /**
  * A blank slate for building a portfolio from scratch. Selling is on by
- * default in the web UI (the solver's own default stays buy-only);
- * taxable accounts remain protected until the guard is unchecked.
+ * default in the web UI, taxable accounts included (the solver's own
+ * default stays buy-only); the always-visible checkbox turns taxable
+ * sells off.
  */
 export function emptyScenario(): Scenario {
   return {
     portfolio: { accounts: [], funds: [], assetClasses: [], holdings: [] },
     targets: [],
     contributions: [],
-    options: { allowSelling: true },
+    options: { allowSelling: true, sellInTaxableAccounts: true },
   };
 }

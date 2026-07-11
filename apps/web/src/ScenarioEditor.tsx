@@ -23,6 +23,7 @@ export function OptionsEditor({ scenario, onChange }: EditorProps) {
       <label className="check-row">
         <input
           type="checkbox"
+          aria-label="Allow selling"
           checked={options.allowSelling ?? false}
           onChange={(event) => onChange(withOptions(scenario, { allowSelling: event.target.checked }))}
         />

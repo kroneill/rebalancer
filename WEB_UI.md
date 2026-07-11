@@ -58,9 +58,10 @@ The page is one screen, top to bottom:
    If the current inputs are invalid (targets don't total 100%, say), the
    solver's own error message renders where the results would be.
 
-Selling is **on by default** in the UI (the solver itself stays buy-only
-by default), but taxable accounts are protected by the always-visible
-"Avoid selling in taxable accounts" checkbox at the top. The rarer knobs —
+Selling is **on by default** in the UI, taxable accounts included (the
+solver itself stays buy-only by default); the always-visible "Allow
+selling in taxable accounts" checkbox at the top starts checked — uncheck
+it to rebalance only tax-advantaged accounts by selling. The rarer knobs —
 allow selling at all, tolerance band, minimum sell-funded trade,
 optimizer — live behind the ⚙ Settings button; whenever any of them is
 non-default, a summary note appears next to the Trades heading so

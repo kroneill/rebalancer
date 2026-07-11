@@ -6,8 +6,8 @@ import type { Scenario } from "@rebalancer/solver";
  * household with a taxable brokerage, two IRAs, a 401(k), and an HSA. Not
  * real account data. Kept as a typed const because the fixture file is not
  * part of the solver's public exports. One deliberate difference from the
- * fixture: the web UI turns selling on by default (taxable accounts stay
- * protected unless the user unchecks the guard).
+ * fixture: the web UI turns selling on by default, taxable accounts
+ * included (the checkbox at the top of the page turns taxable sells off).
  */
 export const demoScenario: Scenario = {
   portfolio: {
@@ -55,5 +55,5 @@ export const demoScenario: Scenario = {
     { accountId: "k401", amount: 15000 },
     { accountId: "hsa", amount: 5000 },
   ],
-  options: { allowSelling: true },
+  options: { allowSelling: true, sellInTaxableAccounts: true },
 };
