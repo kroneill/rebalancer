@@ -442,6 +442,67 @@ button:disabled {
   text-transform: uppercase;
 }
 
+/* Asset classes card: name | tax location | target % | remove */
+
+.class-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 118px 34px;
+  gap: 8px;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.class-row input[type="text"] {
+  font: inherit;
+  font-size: 13.5px;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.class-row .amount-input input {
+  width: 90px;
+}
+
+.class-row-header {
+  font-size: 12px;
+  font-weight: 550;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.class-target-heading {
+  justify-self: end;
+  padding-right: 18px;
+}
+
+.class-row-total {
+  border-top: 1.5px solid var(--border-strong);
+  border-bottom: none;
+  font-weight: 650;
+}
+
+.class-total-value {
+  grid-column: 2 / 4;
+  justify-self: end;
+  white-space: nowrap;
+  padding-right: 18px;
+}
+
+.class-row-total.total-ok .class-total-value {
+  color: var(--buy);
+}
+
+.class-row-total.total-bad .class-total-value {
+  color: var(--sell);
+}
+
 .add-row {
   display: flex;
   align-items: center;

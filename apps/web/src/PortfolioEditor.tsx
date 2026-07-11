@@ -15,9 +15,11 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { TOTAL_BPS } from "@rebalancer/solver";
 import type { Scenario, TaxPreference, TaxType } from "@rebalancer/solver";
 import { useState } from "react";
-import { MoneyInput } from "./inputs.tsx";
+import { formatBpsAsPercent } from "./format.ts";
+import { MoneyInput, PercentInput } from "./inputs.tsx";
 import {
   addAccount,
   addAssetClass,
@@ -27,10 +29,12 @@ import {
   removeFund,
   reorderFundPreference,
   setFundAvailability,
+  targetWeightTotal,
   updateAccount,
   updateAssetClass,
   updateFund,
   withHolding,
+  withTargetWeight,
 } from "./scenario-edit.ts";
 
 /**
@@ -100,12 +104,22 @@ function AddRow({
 }
 
 function AssetClassesCard({ scenario, onChange }: EditorProps) {
+  const total = targetWeightTotal(scenario);
+  const weightByClassId = new Map(scenario.targets.map((t) => [t.assetClassId, t.weight]));
   return (
     <div className="card editor-card">
       <h3>Asset classes</h3>
-      <p className="editor-hint">The categories you allocate across. Each fund belongs to one.</p>
+      <p className="editor-hint">
+        The categories you allocate across, each with its target share of the whole portfolio.
+      </p>
+      <div className="class-row class-row-header" aria-hidden="true">
+        <span>Name</span>
+        <span>Tax location</span>
+        <span className="class-target-heading">Target</span>
+        <span />
+      </div>
       {scenario.portfolio.assetClasses.map((assetClass) => (
-        <div className="field-row" key={assetClass.id}>
+        <div className="class-row" key={assetClass.id}>
           <input
             type="text"
             aria-label={`Asset class name (${assetClass.id})`}
@@ -127,6 +141,11 @@ function AssetClassesCard({ scenario, onChange }: EditorProps) {
               </option>
             ))}
           </select>
+          <PercentInput
+            bps={weightByClassId.get(assetClass.id) ?? 0}
+            onBps={(weight) => onChange(withTargetWeight(scenario, assetClass.id, weight))}
+            label={`Target weight for ${assetClass.name}`}
+          />
           <button
             type="button"
             className="remove-button"
@@ -138,6 +157,16 @@ function AssetClassesCard({ scenario, onChange }: EditorProps) {
           </button>
         </div>
       ))}
+      {scenario.portfolio.assetClasses.length > 0 && (
+        <div className={`class-row class-row-total ${total === TOTAL_BPS ? "total-ok" : "total-bad"}`}>
+          <span className="field-label">Targets total</span>
+          <span className="num class-total-value">
+            {formatBpsAsPercent(total)}
+            {total !== TOTAL_BPS && " — must total 100%"}
+          </span>
+          <span />
+        </div>
+      )}
       <AddRow
         placeholder="New asset class name"
         buttonLabel="Add class"

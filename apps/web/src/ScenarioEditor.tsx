@@ -1,46 +1,18 @@
-import { DEFAULT_TOLERANCE_BPS, TOTAL_BPS } from "@rebalancer/solver";
+import { DEFAULT_TOLERANCE_BPS } from "@rebalancer/solver";
 import type { Scenario } from "@rebalancer/solver";
-import { formatBpsAsPercent } from "./format.ts";
 import { MoneyInput, PercentInput } from "./inputs.tsx";
-import { targetWeightTotal, withContribution, withOptions, withTargetWeight } from "./scenario-edit.ts";
+import { withContribution, withOptions } from "./scenario-edit.ts";
 
 /**
- * The targets / contributions / options editors. Each edits one slice of
- * the Scenario via the pure updaters in scenario-edit.ts and reports the
- * whole new Scenario up — the solver run happens in App.
+ * The contributions / options editors. Each edits one slice of the
+ * Scenario via the pure updaters in scenario-edit.ts and reports the
+ * whole new Scenario up — the solver run happens in App. (Targets are
+ * edited in the Asset classes card, next to the classes themselves.)
  */
 
 interface EditorProps {
   scenario: Scenario;
   onChange: (scenario: Scenario) => void;
-}
-
-export function TargetsEditor({ scenario, onChange }: EditorProps) {
-  const total = targetWeightTotal(scenario);
-  const weightByClassId = new Map(scenario.targets.map((t) => [t.assetClassId, t.weight]));
-  return (
-    <div className="card editor-card">
-      <h3>Targets</h3>
-      <p className="editor-hint">Desired share of the whole portfolio, per asset class.</p>
-      {scenario.portfolio.assetClasses.map((assetClass) => (
-        <div className="field-row" key={assetClass.id}>
-          <span className="field-label">{assetClass.name}</span>
-          <PercentInput
-            bps={weightByClassId.get(assetClass.id) ?? 0}
-            onBps={(weight) => onChange(withTargetWeight(scenario, assetClass.id, weight))}
-            label={`Target weight for ${assetClass.name}`}
-          />
-        </div>
-      ))}
-      <div className={`field-row total-line ${total === TOTAL_BPS ? "total-ok" : "total-bad"}`} role="status">
-        <span className="field-label">Total</span>
-        <span className="num">
-          {formatBpsAsPercent(total)}
-          {total !== TOTAL_BPS && " — must total 100%"}
-        </span>
-      </div>
-    </div>
-  );
 }
 
 export function ContributionsEditor({ scenario, onChange }: EditorProps) {
