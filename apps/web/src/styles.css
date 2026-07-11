@@ -506,6 +506,15 @@ button:disabled {
   margin-left: 4px;
 }
 
+.add-fund-row {
+  padding-top: 8px;
+}
+
+.add-fund-row select {
+  color: var(--text-muted);
+  font-weight: 550;
+}
+
 .solve-error {
   margin-top: 24px;
   border-color: var(--sell);

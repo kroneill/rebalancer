@@ -62,7 +62,7 @@ test("a portfolio built from scratch in the UI produces trades", async () => {
   await user.selectOptions(screen.getByLabelText("Tax type for new account"), "tax_deferred");
   await user.click(screen.getByRole("button", { name: "Add account" }));
 
-  await user.click(screen.getByLabelText("VTI buyable in My IRA"));
+  await user.selectOptions(screen.getByLabelText("Add fund to My IRA"), "vti");
   await user.type(screen.getByLabelText("Current value of VTI in My IRA"), "900");
 
   // Plan: 100% US Stocks, $100 contribution.
@@ -110,6 +110,24 @@ test("uploading a broken file shows an error and keeps the current scenario", as
   expect(screen.getByText("That file isn't valid JSON.")).toBeInTheDocument();
   // The demo scenario is still on screen.
   expect(screen.getByLabelText("Target weight for US Stocks")).toBeInTheDocument();
+});
+
+test("removing a fund from an account clears its menu entry and holding, and it becomes addable again", async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  // VXUS is in the taxable account's menu (so not in its add picker) and holds $8,000.
+  const addPicker = () => screen.getByLabelText("Add fund to Taxable Brokerage");
+  expect(within(addPicker()).queryByRole("option", { name: /VXUS/ })).not.toBeInTheDocument();
+
+  await user.click(screen.getByLabelText("Remove VXUS from Taxable Brokerage"));
+
+  expect(screen.queryByLabelText("Current value of VXUS in Taxable Brokerage")).not.toBeInTheDocument();
+  expect(within(addPicker()).getByRole("option", { name: /VXUS/ })).toBeInTheDocument();
+  // The holding is gone too: International Stocks now has no current value anywhere.
+  const allocation = screen.getByRole("region", { name: "Portfolio by asset class" });
+  const intlRow = within(allocation).getByRole("row", { name: /International Stocks/ });
+  expect(within(intlRow).getAllByText("$0.00").length).toBeGreaterThan(0);
 });
 
 test("allow selling produces sell trades for the drifted demo portfolio", async () => {

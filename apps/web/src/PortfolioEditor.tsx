@@ -205,10 +205,6 @@ function FundsCard({ scenario, onChange }: EditorProps) {
 function AccountCard({ scenario, onChange, accountId }: EditorProps & { accountId: string }) {
   const account = scenario.portfolio.accounts.find((a) => a.id === accountId);
   if (!account) return null;
-  const { funds, holdings } = scenario.portfolio;
-  const holdingByFundId = new Map(
-    holdings.filter((h) => h.accountId === accountId).map((h) => [h.fundId, h.value]),
-  );
   return (
     <div className="card editor-card account-card">
       <div className="account-card-header">
@@ -239,46 +235,77 @@ function AccountCard({ scenario, onChange, accountId }: EditorProps & { accountI
           ✕
         </button>
       </div>
+      <AccountFundList scenario={scenario} onChange={onChange} accountId={accountId} />
+    </div>
+  );
+}
+
+/**
+ * The funds actually in an account: its buyable menu in preference order,
+ * then anything held-but-no-longer-buyable. New funds join via the picker
+ * at the bottom (fed from the Funds card); ✕ takes the fund out of the
+ * account entirely (menu and holding).
+ */
+function AccountFundList({ scenario, onChange, accountId }: EditorProps & { accountId: string }) {
+  const account = scenario.portfolio.accounts.find((a) => a.id === accountId);
+  if (!account) return null;
+  const { funds, holdings } = scenario.portfolio;
+  const fundsById = new Map(funds.map((f) => [f.id, f]));
+  const fundLabel = (fundId: string) => {
+    const fund = fundsById.get(fundId);
+    return fund?.ticker || fund?.name || fundId;
+  };
+  const holdingByFundId = new Map(
+    holdings.filter((h) => h.accountId === accountId).map((h) => [h.fundId, h.value]),
+  );
+
+  const rows = [
+    ...account.availableFundIds.map((fundId) => ({ fundId, buyable: true })),
+    ...funds
+      .filter((f) => !account.availableFundIds.includes(f.id) && holdingByFundId.has(f.id))
+      .map((f) => ({ fundId: f.id, buyable: false })),
+  ];
+  const inAccount = new Set(rows.map((row) => row.fundId));
+  const addable = funds.filter((f) => !inAccount.has(f.id));
+
+  const removeFromAccount = (fundId: string) =>
+    onChange(withHolding(setFundAvailability(scenario, account.id, fundId, false), account.id, fundId, 0));
+
+  return (
+    <>
       {funds.length === 0 ? (
         <p className="editor-hint">Add funds to give this account something to hold or buy.</p>
+      ) : rows.length === 0 ? (
+        <p className="editor-hint">No funds in this account yet — add one below.</p>
       ) : (
         <div className="table-scroll">
           <table className="account-fund-table">
             <thead>
               <tr>
                 <th scope="col">Fund</th>
-                <th scope="col">Buyable</th>
                 <th scope="col">Preference</th>
                 <th scope="col" className="num-col">Current value</th>
+                <th scope="col">
+                  <span className="visually-hidden">Remove</span>
+                </th>
               </tr>
             </thead>
             <tbody>
-              {funds.map((fund) => {
-                const label = fund.ticker || fund.name || fund.id;
-                const rank = account.availableFundIds.indexOf(fund.id);
-                const held = holdingByFundId.get(fund.id) ?? 0;
+              {rows.map(({ fundId, buyable }) => {
+                const label = fundLabel(fundId);
+                const rank = account.availableFundIds.indexOf(fundId);
                 return (
-                  <tr key={fund.id}>
+                  <tr key={fundId}>
                     <th scope="row">{label}</th>
-                    <td>
-                      <input
-                        type="checkbox"
-                        aria-label={`${label} buyable in ${account.name}`}
-                        checked={rank !== -1}
-                        onChange={(event) =>
-                          onChange(setFundAvailability(scenario, account.id, fund.id, event.target.checked))
-                        }
-                      />
-                    </td>
                     <td className="preference-cell">
-                      {rank !== -1 && (
+                      {buyable ? (
                         <>
                           <span className="num">#{rank + 1}</span>
                           <button
                             type="button"
                             aria-label={`Prefer ${label} more in ${account.name}`}
                             disabled={rank === 0}
-                            onClick={() => onChange(moveFundPreference(scenario, account.id, fund.id, -1))}
+                            onClick={() => onChange(moveFundPreference(scenario, account.id, fundId, -1))}
                           >
                             ↑
                           </button>
@@ -286,19 +313,32 @@ function AccountCard({ scenario, onChange, accountId }: EditorProps & { accountI
                             type="button"
                             aria-label={`Prefer ${label} less in ${account.name}`}
                             disabled={rank === account.availableFundIds.length - 1}
-                            onClick={() => onChange(moveFundPreference(scenario, account.id, fund.id, 1))}
+                            onClick={() => onChange(moveFundPreference(scenario, account.id, fundId, 1))}
                           >
                             ↓
                           </button>
                         </>
+                      ) : (
+                        <span className="chip">held — not buyable</span>
                       )}
                     </td>
                     <td className="num-col">
                       <MoneyInput
-                        cents={held}
-                        onCents={(value) => onChange(withHolding(scenario, account.id, fund.id, value))}
+                        cents={holdingByFundId.get(fundId) ?? 0}
+                        onCents={(value) => onChange(withHolding(scenario, account.id, fundId, value))}
                         label={`Current value of ${label} in ${account.name}`}
                       />
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="remove-button"
+                        aria-label={`Remove ${label} from ${account.name}`}
+                        title="Removes this fund from the account (menu and holding)"
+                        onClick={() => removeFromAccount(fundId)}
+                      >
+                        ✕
+                      </button>
                     </td>
                   </tr>
                 );
@@ -307,7 +347,26 @@ function AccountCard({ scenario, onChange, accountId }: EditorProps & { accountI
           </table>
         </div>
       )}
-    </div>
+      {addable.length > 0 && (
+        <div className="add-fund-row">
+          <select
+            aria-label={`Add fund to ${account.name}`}
+            value=""
+            onChange={(event) => {
+              if (event.target.value) onChange(setFundAvailability(scenario, account.id, event.target.value, true));
+            }}
+          >
+            <option value="">＋ Add fund…</option>
+            {addable.map((fund) => (
+              <option key={fund.id} value={fund.id}>
+                {fund.ticker || fund.name || fund.id}
+                {fund.name && fund.ticker ? ` — ${fund.name}` : ""}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+    </>
   );
 }
 
