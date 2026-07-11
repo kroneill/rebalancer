@@ -54,7 +54,7 @@ export function App() {
     <main className="app">
       <header className="app-header">
         <div>
-          <h1>Rebalancer</h1>
+          <h1>Asset Allocation Rebalance Calculator</h1>
           <p className="tagline">
             Multi-account portfolio rebalancing. Everything runs in this page —
             nothing is uploaded, and reloading clears it.

@@ -5,7 +5,7 @@ import { App } from "./App.tsx";
 
 test("renders the demo scenario's solved result on load", () => {
   render(<App />);
-  expect(screen.getByRole("heading", { name: "Rebalancer" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Asset Allocation Rebalance Calculator" })).toBeInTheDocument();
   const trades = screen.getByRole("region", { name: "Trades" });
   expect(within(trades).getAllByText("BUY").length).toBeGreaterThan(0);
   expect(screen.getByRole("region", { name: "Portfolio by asset class" })).toBeInTheDocument();
