@@ -139,24 +139,26 @@ test("removing a fund from an account clears its menu entry and holding, and it 
   expect(within(intlRow).getAllByText("$700.00").length).toBeGreaterThan(0);
 });
 
-test("the demo's VT blend is summarized in the Funds card and editable slice by slice", async () => {
+test("the demo's VT blend shows a Blend toggle in the Funds card and is editable slice by slice", async () => {
   const user = userEvent.setup();
   render(<App />);
 
-  // Collapsed: a summary button, largest slice first.
+  // Collapsed: a compact "Blend" toggle whose tooltip carries the mix.
   const summary = screen.getByRole("button", { name: "Asset class blend for VT" });
-  expect(summary).toHaveTextContent("65% US Stocks · 35% International Stocks");
+  expect(summary).toHaveTextContent("Blend");
+  expect(summary).toHaveAttribute("title", "65% US Stocks · 35% International Stocks");
 
   await user.click(summary);
   const usWeight = screen.getByLabelText("Weight of US Stocks in VT");
   expect(usWeight).toHaveValue("65");
 
-  // Nudge the split to 60/40 and watch the summary follow.
+  // Nudge the split to 60/40 and watch the tooltip follow.
   await user.clear(usWeight);
   await user.type(usWeight, "60");
   await user.clear(screen.getByLabelText("Weight of International Stocks in VT"));
   await user.type(screen.getByLabelText("Weight of International Stocks in VT"), "40");
-  expect(screen.getByRole("button", { name: "Asset class blend for VT" })).toHaveTextContent(
+  expect(screen.getByRole("button", { name: "Asset class blend for VT" })).toHaveAttribute(
+    "title",
     "60% US Stocks · 40% International Stocks",
   );
 });
@@ -171,7 +173,7 @@ test("a new fund can be added as a blend straight from the add row", async () =>
 
   // The fund arrives as 100% of the first class with its slice editor
   // already open, ready to be carved up.
-  expect(screen.getByRole("button", { name: "Asset class blend for AOA" })).toHaveTextContent("100% US Stocks");
+  expect(screen.getByRole("button", { name: "Asset class blend for AOA" })).toHaveAttribute("title", "100% US Stocks");
   expect(screen.getByLabelText("Weight of US Stocks in AOA")).toHaveValue("100");
   expect(screen.getByLabelText("Add asset class to AOA")).toBeInTheDocument();
 });

@@ -557,19 +557,22 @@ button:disabled {
   border-bottom: none;
 }
 
+/* The class cell is one fixed width — select or Blend button alike — so
+   every fund row's boxes line up. */
+.fund-block .field-row select,
+.blend-summary {
+  width: 176px;
+  flex: none;
+}
+
 .blend-summary {
   display: inline-flex;
   align-items: center;
+  justify-content: space-between;
   gap: 6px;
-  max-width: 300px;
   font-weight: 500;
-  font-size: 12.5px;
+  font-size: 13px;
   padding: 4px 8px;
-}
-
-.blend-summary-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 

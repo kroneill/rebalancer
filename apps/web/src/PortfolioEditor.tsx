@@ -324,11 +324,10 @@ function FundsCard({ scenario, onChange }: EditorProps) {
                   className="blend-summary"
                   aria-label={`Asset class blend for ${label}`}
                   aria-expanded={expanded}
-                  title={expanded ? "Collapse the blend editor" : "Edit this fund's class blend"}
+                  title={blendSummary(fund, classNames)}
                   onClick={() => setBlendOpen(fund.id, !expanded)}
                 >
-                  <span className="blend-summary-text">{blendSummary(fund, classNames)}</span>
-                  <span aria-hidden="true">{expanded ? "▴" : "▾"}</span>
+                  Blend <span aria-hidden="true">{expanded ? "▴" : "▾"}</span>
                 </button>
               ) : (
                 <select

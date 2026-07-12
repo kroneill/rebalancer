@@ -42,7 +42,7 @@ The page is one screen, top to bottom:
    funds (ticker, optional full name, asset class — or a *blend*: the class
    dropdown's "Blend of classes…" option expands a slice-by-slice editor
    with its own "must total 100%" check, and a multi-class fund shows a
-   "65% US Stocks · 35% International Stocks" summary that toggles that
+   compact "Blend ▾" toggle — hover it for the mix — that opens that
    editor; removing a blend's last-but-one slice bumps the survivor back to
    100% and the row collapses to a plain dropdown); and one card per
    account: its tax type, just the funds in that account — the buyable
