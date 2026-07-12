@@ -178,20 +178,47 @@ test("a new fund can be added as a blend straight from the add row", async () =>
   expect(screen.getByLabelText("Add asset class to AOA")).toBeInTheDocument();
 });
 
-test("adding a second fund with an existing ticker surfaces the solver's error until it's removed", async () => {
+test("the add row refuses a duplicate ticker outright", async () => {
   const user = userEvent.setup();
   render(<App />);
 
   await user.type(screen.getByLabelText("New fund ticker"), "vti");
-  await user.click(screen.getByRole("button", { name: "Add fund" }));
+  expect(screen.getByRole("button", { name: "Add fund" })).toBeDisabled();
+  expect(screen.getByText("VTI is already in the fund list.")).toBeInTheDocument();
+
+  // A fresh ticker re-enables the button.
+  await user.clear(screen.getByLabelText("New fund ticker"));
+  await user.type(screen.getByLabelText("New fund ticker"), "schb");
+  expect(screen.getByRole("button", { name: "Add fund" })).toBeEnabled();
+});
+
+test("the add rows refuse duplicate class and account names, case-insensitively", async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  await user.type(screen.getByLabelText("New asset class name"), "US Stocks");
+  expect(screen.getByRole("button", { name: "Add class" })).toBeDisabled();
+  expect(screen.getByText('An asset class named "US Stocks" already exists.')).toBeInTheDocument();
+
+  await user.type(screen.getByLabelText("New account name"), "hsa");
+  expect(screen.getByRole("button", { name: "Add account" })).toBeDisabled();
+  expect(screen.getByText('An account named "hsa" already exists.')).toBeInTheDocument();
+});
+
+test("editing an existing fund's ticker into a collision surfaces the solver's error until fixed", async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  const vxusTicker = screen.getByLabelText("Ticker for fund vxus");
+  await user.clear(vxusTicker);
+  await user.type(vxusTicker, "VTI");
 
   const alert = screen.getByRole("alert");
   expect(alert).toHaveTextContent("Can’t rebalance yet");
   expect(alert).toHaveTextContent('both have ticker "VTI"');
 
-  // Both rows are labeled VTI; the duplicate is the later one. Removing it
-  // brings the results back.
-  await user.click(screen.getAllByLabelText("Remove fund VTI")[1]!);
+  await user.clear(vxusTicker);
+  await user.type(vxusTicker, "VXUS");
   expect(screen.queryByText("Can’t rebalance yet")).not.toBeInTheDocument();
   expect(screen.getByRole("region", { name: "Trades" })).toBeInTheDocument();
 });

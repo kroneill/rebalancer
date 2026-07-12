@@ -368,6 +368,22 @@ function formatDollars(cents: number): string {
   return `${cents < 0 ? "-" : ""}$${dollars}`;
 }
 
+/** Throws when two items share a (trimmed, case-folded) non-blank name. `kindPlural` e.g. "Accounts". */
+function requireUniqueNames(kindPlural: string, items: ReadonlyArray<{ id: string; name: string }>): void {
+  const idByName = new Map<string, string>();
+  for (const item of items) {
+    const name = item.name.trim().toLowerCase();
+    if (!name) continue;
+    const other = idByName.get(name);
+    if (other !== undefined) {
+      throw new Error(
+        `${kindPlural} "${other}" and "${item.id}" are both named "${item.name.trim()}" — names must be unique.`,
+      );
+    }
+    idByName.set(name, item.id);
+  }
+}
+
 function validate(portfolio: Portfolio, targets: Target[], options: RebalanceOptions): void {
   const assetClassIds = new Set(portfolio.assetClasses.map((a) => a.id));
   const fundIds = new Set(portfolio.funds.map((f) => f.id));
@@ -390,6 +406,14 @@ function validate(portfolio: Portfolio, targets: Target[], options: RebalanceOpt
     }
     fundIdByTicker.set(ticker, fund.id);
   }
+
+  // Likewise, names are the only identity asset classes and accounts have in
+  // the output, so duplicates make every table ambiguous. (Fund *names* are
+  // deliberately not checked: share classes legitimately reuse one — VTI and
+  // VTSAX are both "Vanguard Total Stock Market" — and funds are identified
+  // by ticker, checked above.) Case-insensitive; blank names never collide.
+  requireUniqueNames("Asset classes", portfolio.assetClasses);
+  requireUniqueNames("Accounts", portfolio.accounts);
 
   for (const fund of portfolio.funds) {
     const entries = Object.entries(fund.assetClasses);

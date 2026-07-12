@@ -643,6 +643,40 @@ describe("rebalance - core invariants", () => {
     expect(() => rebalance(portfolio, targets, { contributions: [] })).not.toThrow();
   });
 
+  it("rejects duplicate asset-class and account names, case-insensitively", () => {
+    const targets: Target[] = [
+      { assetClassId: "a", weight: 10000 },
+      { assetClassId: "b", weight: 0 },
+    ];
+    const duplicateClassNames: Portfolio = {
+      assetClasses: [
+        { id: "a", name: "Stocks" },
+        { id: "b", name: " stocks " },
+      ],
+      funds: [{ id: "vti", ticker: "VTI", name: "VTI", assetClasses: { a: 10000 } }],
+      accounts: [{ id: "acct", name: "IRA", taxType: "tax_deferred", availableFundIds: ["vti"] }],
+      holdings: [],
+    };
+    expect(() => rebalance(duplicateClassNames, targets, { contributions: [] })).toThrow(
+      /Asset classes "a" and "b" are both named "stocks"/,
+    );
+
+    const duplicateAccountNames: Portfolio = {
+      ...duplicateClassNames,
+      assetClasses: [
+        { id: "a", name: "Stocks" },
+        { id: "b", name: "Bonds" },
+      ],
+      accounts: [
+        { id: "acct_a", name: "IRA", taxType: "tax_deferred", availableFundIds: ["vti"] },
+        { id: "acct_b", name: "ira", taxType: "tax_deferred", availableFundIds: ["vti"] },
+      ],
+    };
+    expect(() => rebalance(duplicateAccountNames, targets, { contributions: [] })).toThrow(
+      /Accounts "acct_a" and "acct_b" are both named "ira"/,
+    );
+  });
+
   it("rejects targets that do not sum to 10000 bps", () => {
     const { portfolio } = loadExample();
     const badTargets: Target[] = [{ assetClassId: "us_stocks", weight: 9000 }];
