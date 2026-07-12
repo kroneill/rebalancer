@@ -546,6 +546,93 @@ button:disabled {
   color: var(--sell);
 }
 
+/* Fund blends: the summary toggle in the fund row + the indented editor */
+
+.fund-block {
+  border-bottom: 1px solid var(--border);
+}
+
+.fund-block .field-row,
+.fund-block:last-of-type {
+  border-bottom: none;
+}
+
+/* The class cell is one fixed width — select or Blend button alike — so
+   every fund row's boxes line up. */
+.fund-block .field-row select,
+.blend-summary {
+  width: 176px;
+  flex: none;
+}
+
+.blend-summary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-weight: 500;
+  font-size: 13px;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+/* A chevron matching the dropdowns' weight; flips while the editor is open. */
+.blend-caret {
+  width: 10px;
+  height: 6px;
+  flex: none;
+  transition: transform 0.12s ease;
+}
+
+.blend-summary[aria-expanded="true"] .blend-caret {
+  transform: rotate(180deg);
+}
+
+.blend-editor {
+  margin: 0 0 8px 84px; /* aligns under the name column, past the ticker */
+  padding: 6px 10px;
+  border-left: 2px solid var(--accent-soft);
+}
+
+.blend-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 118px 34px;
+  gap: 8px;
+  align-items: center;
+  padding: 3px 0;
+}
+
+.blend-row select {
+  min-width: 0;
+  justify-self: start;
+  max-width: 100%;
+}
+
+.blend-row .amount-input input {
+  width: 90px;
+}
+
+.blend-row-footer {
+  padding-top: 6px;
+}
+
+.blend-total {
+  grid-column: 2 / 4;
+  justify-self: end;
+  white-space: nowrap;
+  font-size: 12.5px;
+  font-weight: 650;
+  padding-right: 18px;
+}
+
+.blend-total.total-ok {
+  color: var(--buy);
+}
+
+.blend-total.total-bad {
+  color: var(--sell);
+}
+
 .add-row {
   display: flex;
   align-items: center;
