@@ -5,6 +5,7 @@ import { PortfolioEditor } from "./PortfolioEditor.tsx";
 import { ResultView } from "./ResultView.tsx";
 import { emptyScenario, withOptions } from "./scenario-edit.ts";
 import { scenarioFromJson, scenarioToJson } from "./scenario-file.ts";
+import { starterScenario } from "./starter-scenario.ts";
 import { OptionsEditor } from "./ScenarioEditor.tsx";
 
 type Outcome = { result: RebalanceResult; error?: undefined } | { result?: undefined; error: string };
@@ -35,12 +36,13 @@ function downloadScenario(scenario: Scenario): void {
 
 /**
  * `initialScenario` exists for tests (which drive a populated portfolio);
- * the shipped app always starts empty — pre-filling a portfolio could read
- * as a suggested allocation, and the compliance posture is that every
- * number on screen was stated by the user.
+ * the shipped app starts with only the starter fund catalog — no accounts,
+ * holdings, or targets. Pre-filling those could read as a suggested
+ * portfolio; the compliance posture is that every number on screen was
+ * stated by the user.
  */
 export function App({ initialScenario }: { initialScenario?: Scenario } = {}) {
-  const [scenario, setScenario] = useState<Scenario>(initialScenario ?? emptyScenario());
+  const [scenario, setScenario] = useState<Scenario>(initialScenario ?? starterScenario());
   const [fileError, setFileError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -137,14 +139,17 @@ export function App({ initialScenario }: { initialScenario?: Scenario } = {}) {
 
         <PortfolioEditor scenario={scenario} onChange={setScenario} />
 
-        {scenario.portfolio.assetClasses.length === 0 ? (
-          // A truly blank page gets guidance, not the solver's error.
+        {scenario.portfolio.accounts.length === 0 ? (
+          // Until an account exists nothing can be computed: show guidance,
+          // not the solver's error.
           <div className="card get-started">
             <h3>Start with your portfolio</h3>
             <p>
-              Add your asset classes and their target percentages, the funds you use, and your accounts
-              with their current balances. The trades that move your portfolio toward your targets will
-              appear here — or load a previously downloaded scenario file with <strong>Load JSON…</strong>
+              The funds above are a pre-loaded starting point — rename, remove, or replace them freely;
+              they're placeholders, not recommendations. Set each asset class's target percentage, then
+              add your accounts with their current balances. The trades that move your portfolio toward
+              your targets will appear here — or load a previously downloaded scenario file with{" "}
+              <strong>Load JSON…</strong>
             </p>
           </div>
         ) : outcome.result ? (
@@ -165,8 +170,10 @@ export function App({ initialScenario }: { initialScenario?: Scenario } = {}) {
           <strong>This is a calculator, not investment advice.</strong> This tool performs arithmetic on
           information you provide. You choose the asset classes, the target allocation, the funds, and which
           accounts may hold them; the tool computes trades that move your stated holdings toward your stated
-          targets. It does not recommend any security, allocation, or strategy. Nothing here is investment,
-          tax, or legal advice. Consult a qualified professional before making investment decisions.
+          targets. It does not recommend any security, allocation, or strategy — the funds pre-loaded on
+          first visit are editable placeholders for convenience, not recommendations. Nothing here is
+          investment, tax, or legal advice. Consult a qualified professional before making investment
+          decisions.
         </p>
         <p>Your data stays in your browser and is never transmitted or stored by this site.</p>
       </footer>

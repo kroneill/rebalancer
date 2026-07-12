@@ -5,8 +5,9 @@ import type { Scenario } from "@rebalancer/solver";
  * brokerage, two IRAs, a 401(k), and an HSA holding VT (a 65/35 blend, so
  * the blend editor is exercised), with selling enabled. Mirrors
  * packages/solver/fixtures/example.json. Deliberately NOT imported by the
- * app: the shipped UI starts empty so it never appears to suggest a
- * portfolio or name specific securities (see the compliance footer).
+ * app: the shipped UI starts with only the fund catalog in
+ * starter-scenario.ts — never accounts, holdings, or targets — so it never
+ * appears to suggest a portfolio (see the compliance footer).
  */
 export const demoScenario: Scenario = {
   portfolio: {

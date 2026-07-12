@@ -16,7 +16,9 @@ test("the compliance disclaimer footer is always present", () => {
   render(<App initialScenario={demoScenario} />);
   const footer = screen.getByRole("contentinfo");
   expect(footer).toHaveTextContent("This is a calculator, not investment advice.");
-  expect(footer).toHaveTextContent("It does not recommend any security, allocation, or strategy.");
+  expect(footer).toHaveTextContent(
+    "the funds pre-loaded on first visit are editable placeholders for convenience, not recommendations",
+  );
   expect(footer).toHaveTextContent("Your data stays in your browser and is never transmitted or stored by this site.");
 });
 
@@ -60,13 +62,23 @@ test("a contribution row added from the picker feeds the solver; its ✕ clears 
   expect(within(accounts()).queryByText(/\+\$1,000\.00 cash in/)).not.toBeInTheDocument();
 });
 
-test("the app starts empty with a getting-started card, never an example portfolio", () => {
+test("the app starts with the fund catalog only: no accounts, targets, or amounts", () => {
   render(<App />);
   expect(screen.getByRole("heading", { name: "Start with your portfolio" })).toBeInTheDocument();
   expect(screen.queryByText("Can’t rebalance yet")).not.toBeInTheDocument();
   expect(screen.queryByRole("region", { name: "Trades" })).not.toBeInTheDocument();
-  // No pre-filled securities anywhere.
-  expect(screen.queryByText("VTI")).not.toBeInTheDocument();
+
+  // The starter catalog is present — including VT as a ready-made blend...
+  expect(screen.getByLabelText("Ticker for fund vti")).toHaveValue("VTI");
+  expect(screen.getByRole("button", { name: "Asset class blend for VT" })).toHaveAttribute(
+    "title",
+    "65% US Stocks · 35% International Stocks",
+  );
+  // ...but nothing that could read as a suggested portfolio: every target
+  // percentage is blank and no account exists.
+  expect(screen.getByLabelText("Target weight for US Stocks")).toHaveValue("");
+  expect(screen.getByLabelText("Target weight for US Bonds")).toHaveValue("");
+  expect(screen.queryByLabelText(/Account name/)).not.toBeInTheDocument();
 });
 
 test("Clear all wipes everything back to the getting-started card", async () => {
@@ -81,6 +93,9 @@ test("Clear all wipes everything back to the getting-started card", async () => 
 test("a portfolio built from scratch in the UI produces trades", async () => {
   const user = userEvent.setup();
   render(<App />);
+
+  // Wipe the starter catalog to prove the whole flow works from nothing.
+  await user.click(screen.getByRole("button", { name: "Clear all" }));
 
   // Build: one asset class, one fund, one tax-deferred account holding $900.
   await user.type(screen.getByLabelText("New asset class name"), "US Stocks");

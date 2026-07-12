@@ -13,13 +13,16 @@ pnpm install     # once, at the repo root (Node 24 — run `fnm use` first)
 pnpm dev         # start the Vite dev server
 ```
 
-Then open **http://localhost:5173**. The page deliberately starts
-**empty** — shipping a pre-filled example portfolio could read as a
-suggested allocation, and the compliance posture is that every number on
-screen was stated by the user. A getting-started card points the way; to
-have something to look at, load any fixture from
-`packages/solver/fixtures/` via **Load JSON…** (the UI tests drive a
-populated household through the same `initialScenario` prop).
+Then open **http://localhost:5173**. The page starts with a small
+catalog of common index funds and their asset classes
+(`starter-scenario.ts`) — an editable convenience, deliberately with
+**no accounts, holdings, or target percentages**: pre-filling those
+could read as a suggested portfolio, and the compliance posture is that
+every dollar amount and percentage on screen was stated by the user. A
+getting-started card points the way; to see a fully populated run, load
+any fixture from `packages/solver/fixtures/` via **Load JSON…** (the UI
+tests drive a populated household through App's `initialScenario`
+prop).
 
 To test a production build instead of the dev server:
 
