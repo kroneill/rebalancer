@@ -111,7 +111,7 @@ function downloadScenario(scenario: Scenario): void {
   const url = URL.createObjectURL(new Blob([scenarioToJson(scenario)], { type: "application/json" }));
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = "rebalancer-scenario.json";
+  anchor.download = "rebalancetool.json";
   anchor.click();
   URL.revokeObjectURL(url);
 }
