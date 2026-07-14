@@ -9,7 +9,7 @@ import type { Scenario } from "@rebalancer/solver";
  * download so future format changes can tell old files apart.
  */
 
-export const SCENARIO_FILE_VERSION = "rebalancer-scenario-v1";
+export const SCENARIO_FILE_VERSION = "rebalancetool-scenario-v1";
 
 export function scenarioToJson(scenario: Scenario): string {
   return `${JSON.stringify({ _format: SCENARIO_FILE_VERSION, ...scenario }, null, 2)}\n`;

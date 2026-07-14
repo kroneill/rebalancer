@@ -151,8 +151,8 @@ scenario. The file is the solver's canonical `Scenario` document — exactly
 what the CLI reads — so a downloaded file works directly with
 `pnpm solve -p <file>`, and any fixture in `packages/solver/fixtures/`
 loads straight into the UI. Downloads carry an `"_format":
-"rebalancer-scenario-v1"` comment key (the validator ignores `_`-prefixed
-keys) so future format changes can recognize old files.
+"rebalancetool-scenario-v1"` comment key (the validator ignores
+`_`-prefixed keys) so future format changes can recognize old files.
 
 ## How it's built
 

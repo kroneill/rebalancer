@@ -7,7 +7,7 @@ test("a downloaded scenario round-trips through upload unchanged", () => {
 });
 
 test("the version stamp is a comment key the validator ignores", () => {
-  expect(scenarioToJson(demoScenario)).toContain('"_format": "rebalancer-scenario-v1"');
+  expect(scenarioToJson(demoScenario)).toContain('"_format": "rebalancetool-scenario-v1"');
 });
 
 test("non-JSON is rejected with a readable message", () => {
