@@ -18,11 +18,11 @@ catalog of common index funds and their asset classes
 (`starter-scenario.ts`) — an editable convenience, deliberately with
 **no accounts, holdings, or target percentages**: pre-filling those
 could read as a suggested portfolio, and the compliance posture is that
-every dollar amount and percentage on screen was stated by the user. A
-getting-started card points the way; to see a fully populated run, load
-any fixture from `packages/solver/fixtures/` via **Open file…** (the UI
-tests drive a populated household through App's `initialScenario`
-prop).
+every dollar amount and percentage on screen was stated by the user.
+The header's "How it works" steps and short hints beside each control
+point the way; to see a fully populated run, load any fixture from
+`packages/solver/fixtures/` via **Open file…** (the UI tests drive a
+populated household through App's `initialScenario` prop).
 
 To test a production build instead of the dev server:
 
@@ -128,29 +128,33 @@ The page is one screen, top to bottom:
    If the current inputs are invalid (targets don't total 100%, say), the
    solver's own error message renders where the results would be.
 
-Selling is **on by default** in the UI, taxable accounts included (the
-solver itself stays buy-only by default); the always-visible "Allow
-selling in taxable accounts" checkbox at the top starts checked — uncheck
-it to rebalance only tax-advantaged accounts by selling. The rarer knobs —
-allow selling at all, tolerance band, minimum sell-funded trade — live
-behind the ⚙ Settings button; whenever any of them is non-default, a
-summary note appears next to the Trades heading so tucked-away settings
-can never invisibly shape the results.
+Selling is **on by default** in the UI (the solver itself stays buy-only
+by default) — but never in taxable accounts, where sells could realize
+capital gains, until the user opts in. All the knobs — allow selling,
+allow selling in taxable accounts, tolerance band, minimum sell-funded
+trade — live behind ⚙ Settings (one button in the header, one in the
+status bar). The status bar between the editor and the results carries
+the recompute pulse plus a settings summary that always states the
+selling posture ("selling on · taxable accounts protected" / "may sell
+in taxable accounts" / "selling off") and lists any other non-default
+knobs, so tucked-away settings can never invisibly shape the results.
 
 A permanent footer carries the compliance disclaimer: the tool is a
 calculator performing arithmetic on user-supplied inputs, not
 personalized investment advice, and data never leaves the browser. Keep
 it visible on every layout change — presenting impersonal calculation
 (rather than security recommendations) is a legal posture, not just
-copy.
+copy. It also carries the open-source attribution (MIT, with GitHub
+source/issues links); those links open in a new tab because navigating
+away would discard the page's unsaved state.
 
 **Save file / Open file…** in the header save and restore the complete
 scenario. The file is the solver's canonical `Scenario` document — exactly
 what the CLI reads — so a downloaded file works directly with
 `pnpm solve -p <file>`, and any fixture in `packages/solver/fixtures/`
 loads straight into the UI. Downloads carry an `"_format":
-"rebalancer-scenario-v1"` comment key (the validator ignores `_`-prefixed
-keys) so future format changes can recognize old files.
+"rebalancetool-scenario-v1"` comment key (the validator ignores
+`_`-prefixed keys) so future format changes can recognize old files.
 
 ## How it's built
 

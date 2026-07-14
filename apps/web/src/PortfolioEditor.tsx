@@ -177,7 +177,15 @@ function AssetClassesCard({ scenario, onChange }: EditorProps) {
         </div>
       ))}
       {scenario.portfolio.assetClasses.length > 0 && (
-        <div className={`class-row class-row-total ${total === TOTAL_BPS ? "total-ok" : "total-bad"}`}>
+        // A total of 0 means allocating hasn't started (fresh page, or every
+        // target blank) — show the requirement quietly instead of scolding a
+        // page the user hasn't touched. Red is for started-but-inconsistent;
+        // once accounts exist the solver's own error enforces the rule too.
+        <div
+          className={`class-row class-row-total ${
+            total === TOTAL_BPS ? "total-ok" : total === 0 ? "total-pending" : "total-bad"
+          }`}
+        >
           <span className="field-label">Targets total</span>
           <span className="num class-total-value">
             {formatBpsAsPercent(total)}
@@ -310,7 +318,7 @@ function FundsCard({ scenario, onChange }: EditorProps) {
       <h3>Funds</h3>
       <p className="editor-hint">
         Everything you hold or could buy, tagged with its asset class — or a blend of classes (e.g. VT is 65% US /
-        35% international).
+        35% international). The starter list is an editable placeholder, not a recommendation.
       </p>
       {funds.map((fund) => {
         const label = fund.ticker || fund.name || fund.id;
@@ -732,10 +740,18 @@ export function PortfolioEditor({ scenario, onChange }: EditorProps) {
         <FundsCard scenario={scenario} onChange={onChange} />
       </div>
       <h2>Accounts &amp; holdings</h2>
+      <p className="editor-hint section-hint">
+        Each account lists just the funds it can trade, in your order of preference — #1 is bought first.
+      </p>
       {scenario.portfolio.accounts.map((account) => (
         <AccountCard key={account.id} scenario={scenario} onChange={onChange} accountId={account.id} />
       ))}
       <div className="card editor-card">
+        {scenario.portfolio.accounts.length === 0 && (
+          <p className="editor-hint">
+            Add each account you hold — 401(k), IRA, brokerage — with its tax type; funds and balances come next.
+          </p>
+        )}
         <AddRow
           placeholder="New account name"
           buttonLabel="Add account"

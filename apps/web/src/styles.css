@@ -81,29 +81,17 @@ body {
   box-shadow: 0 10px 28px rgba(26, 33, 41, 0.18);
 }
 
-/* The always-visible taxable-sell guard under the header. */
-.taxable-guard {
-  border-bottom: none;
-  margin-top: 10px;
-  max-width: 70ch;
+/* Status-bar placement opens the popover rightward from the button. */
+.settings-popover-left {
+  left: 0;
+  right: auto;
 }
 
-/* Small annotation next to the Trades heading when settings are non-default. */
-.heading-row {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin: 32px 0 10px;
+/* A checkbox that depends on the one above it (taxable sells under Allow selling). */
+.check-row-nested {
+  padding-left: 24px;
 }
 
-.heading-row h2 {
-  margin: 0;
-}
-
-.options-note {
-  font-size: 12.5px;
-  color: var(--text-muted);
-}
 
 .app-header h1 {
   margin: 0;
@@ -122,6 +110,25 @@ body {
   margin: 4px 0 0;
   color: var(--text-muted);
   max-width: 60ch;
+}
+
+.tagline .how-title {
+  margin: 0;
+  font-weight: 550;
+}
+
+.tagline .how-steps {
+  margin: 4px 0 0;
+  padding-left: 22px;
+}
+
+.tagline .how-steps li {
+  margin-top: 2px;
+}
+
+.tagline .how-privacy {
+  margin: 6px 0 0;
+  font-size: 13px;
 }
 
 /* Numbers align in columns everywhere they appear. */
@@ -324,15 +331,29 @@ thead .num-col {
   color: var(--text-muted);
 }
 
-/* Recompute pulse above the results */
+/* Status bar between the editor and the results: recompute pulse,
+   settings summary, and its own ⚙ Settings button. */
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 20px 0 -8px;
+}
+
+.status-options {
+  font-size: 13px;
+  color: var(--text-muted);
+}
 
 .recompute-status {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 20px 0 -8px;
   font-size: 12px;
   color: var(--text-muted);
+  min-width: 105px; /* Recomputing…/Up to date swap must not shift the summary. */
 }
 
 .recompute-status .spinner {
@@ -453,35 +474,15 @@ select {
   background: #fdf0ef;
 }
 
-.total-line {
-  border-top: 1.5px solid var(--border-strong);
-  font-weight: 650;
+/* Quiet marker where results will render once an account exists. */
+.results-placeholder {
+  margin: 32px 0 0;
 }
 
-.total-line.total-ok .num {
-  color: var(--buy);
-}
-
-.total-line.total-bad .num {
-  color: var(--sell);
-}
-
-/* First-run guidance card (shown while the portfolio has no asset classes). */
-.get-started {
-  margin-top: 32px;
-  border-style: dashed;
-}
-
-.get-started h3 {
-  margin: 0 0 6px;
-  font-size: 15px;
-  font-weight: 650;
-}
-
-.get-started p {
-  margin: 0;
-  color: var(--text-muted);
-  max-width: 70ch;
+/* Muted hint sitting directly under a section h2, outside any card. */
+.section-hint {
+  margin: -6px 0 12px;
+  max-width: 72ch;
 }
 
 /* Compliance footer: quiet but always present and readable. */
@@ -501,6 +502,16 @@ select {
 
 .app-footer strong {
   color: var(--text);
+}
+
+.app-footer a {
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.app-footer a:hover {
+  color: var(--accent);
 }
 
 .visually-hidden {
@@ -626,6 +637,11 @@ button:disabled {
 
 .class-row-total.total-bad .class-total-value {
   color: var(--sell);
+}
+
+/* Allocation not started yet (total is 0): state the rule without alarm. */
+.class-row-total.total-pending .class-total-value {
+  color: var(--text-muted);
 }
 
 /* Fund blends: the summary toggle in the fund row + the indented editor */

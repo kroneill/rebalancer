@@ -1,9 +1,10 @@
 import { rebalance } from "@rebalancer/solver";
 import type { RebalanceResult, Scenario } from "@rebalancer/solver";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { describeOptions } from "./format.ts";
 import { PortfolioEditor } from "./PortfolioEditor.tsx";
 import { ResultView } from "./ResultView.tsx";
-import { emptyScenario, withOptions } from "./scenario-edit.ts";
+import { emptyScenario } from "./scenario-edit.ts";
 import { scenarioFromJson, scenarioToJson } from "./scenario-file.ts";
 import { starterScenario } from "./starter-scenario.ts";
 import { OptionsEditor } from "./ScenarioEditor.tsx";
@@ -25,14 +26,57 @@ function solve(scenario: Scenario): Outcome {
 }
 
 /**
- * A brief "Recomputing…" pulse above the results on every scenario change.
- * The solver is synchronous — results are already current by the time this
- * renders — so the pulse is purely perceptual: an edit whose recomputed
+ * The ⚙ Settings button with its anchored popover. Two placements — the
+ * header and the status bar — each own their instance; the scenario they
+ * edit is shared, so only the open/closed state is per-placement.
+ */
+function SettingsButton({
+  scenario,
+  onChange,
+  popoverSide = "right",
+  label,
+}: {
+  scenario: Scenario;
+  onChange: (scenario: Scenario) => void;
+  popoverSide?: "left" | "right";
+  label?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="settings-anchor">
+      <button type="button" aria-expanded={open} aria-label={label} onClick={() => setOpen((wasOpen) => !wasOpen)}>
+        ⚙ Settings
+      </button>
+      {open && (
+        <div
+          className={`settings-popover${popoverSide === "left" ? " settings-popover-left" : ""}`}
+          role="dialog"
+          aria-label="Settings"
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setOpen(false);
+          }}
+        >
+          <OptionsEditor scenario={scenario} onChange={onChange} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The status bar between the editor and the results: the recompute pulse,
+ * the settings summary (selling posture always, other knobs when
+ * non-default — see describeOptions), and its own ⚙ Settings button, so the
+ * settings that shape the results are stated and adjustable right where the
+ * results begin.
+ *
+ * The pulse: the solver is synchronous — results are already current by the
+ * time this renders — so it is purely perceptual: an edit whose recomputed
  * output happens to look identical to the previous one still visibly did
  * something. Not a live region: announcing every keystroke would drown
  * screen readers, and the results themselves are the real signal.
  */
-function RecomputeStatus({ scenario }: { scenario: Scenario }) {
+function StatusBar({ scenario, onChange }: { scenario: Scenario; onChange: (scenario: Scenario) => void }) {
   const [busy, setBusy] = useState(true);
   useEffect(() => {
     setBusy(true);
@@ -40,20 +84,24 @@ function RecomputeStatus({ scenario }: { scenario: Scenario }) {
     return () => clearTimeout(timer);
   }, [scenario]);
   return (
-    <div className="recompute-status">
-      {busy ? (
-        <>
-          <span className="spinner" aria-hidden="true" />
-          Recomputing…
-        </>
-      ) : (
-        <>
-          <span className="status-check" aria-hidden="true">
-            ✓
-          </span>
-          Up to date
-        </>
-      )}
+    <div className="status-bar">
+      <span className="recompute-status">
+        {busy ? (
+          <>
+            <span className="spinner" aria-hidden="true" />
+            Recomputing…
+          </>
+        ) : (
+          <>
+            <span className="status-check" aria-hidden="true">
+              ✓
+            </span>
+            Up to date
+          </>
+        )}
+      </span>
+      <span className="status-options">{describeOptions(scenario.options)}</span>
+      <SettingsButton scenario={scenario} onChange={onChange} popoverSide="left" label="Rebalance settings" />
     </div>
   );
 }
@@ -63,7 +111,7 @@ function downloadScenario(scenario: Scenario): void {
   const url = URL.createObjectURL(new Blob([scenarioToJson(scenario)], { type: "application/json" }));
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = "rebalancer-scenario.json";
+  anchor.download = "rebalancetool.json";
   anchor.click();
   URL.revokeObjectURL(url);
 }
@@ -78,10 +126,8 @@ function downloadScenario(scenario: Scenario): void {
 export function App({ initialScenario }: { initialScenario?: Scenario } = {}) {
   const [scenario, setScenario] = useState<Scenario>(initialScenario ?? starterScenario());
   const [fileError, setFileError] = useState<string | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const outcome = useMemo(() => solve(scenario), [scenario]);
-  const allowTaxableSells = scenario.options?.sellInTaxableAccounts ?? false;
 
   const onFileChosen = async (file: File | undefined) => {
     if (!file) return;
@@ -101,10 +147,21 @@ export function App({ initialScenario }: { initialScenario?: Scenario } = {}) {
             <h1>
               <img className="wordmark" src="/wordmark.svg" alt="rebalancetool" height={48} />
             </h1>
-            <p className="tagline">
-              See the exact trades that rebalance your whole portfolio toward your targets —
-              every account at once, tax-aware, right in your browser.
-            </p>
+            <div className="tagline">
+              <p className="how-title">How it works:</p>
+              <ol className="how-steps">
+                <li>Choose a target asset allocation.</li>
+                <li>Enter your current investments and the funds each account can trade.</li>
+                <li>
+                  See the trades that reach your targets: all your accounts, tax-aware, and no
+                  unnecessary selling.
+                </li>
+              </ol>
+              <p className="how-privacy">
+                Your data never leaves your browser. <strong>Save file</strong> keeps your setup for
+                next time.
+              </p>
+            </div>
           </div>
           <div className="header-actions">
             <button
@@ -135,44 +192,9 @@ export function App({ initialScenario }: { initialScenario?: Scenario } = {}) {
             <button type="button" onClick={() => setScenario(emptyScenario())}>
               Clear all
             </button>
-            <div className="settings-anchor">
-              <button
-                type="button"
-                aria-expanded={settingsOpen}
-                onClick={() => setSettingsOpen((open) => !open)}
-              >
-                ⚙ Settings
-              </button>
-              {settingsOpen && (
-                <div
-                  className="settings-popover"
-                  role="dialog"
-                  aria-label="Settings"
-                  onKeyDown={(event) => {
-                    if (event.key === "Escape") setSettingsOpen(false);
-                  }}
-                >
-                  <OptionsEditor scenario={scenario} onChange={setScenario} />
-                </div>
-              )}
-            </div>
+            <SettingsButton scenario={scenario} onChange={setScenario} />
           </div>
         </header>
-
-        <label className="check-row taxable-guard">
-          <input
-            type="checkbox"
-            aria-label="Allow selling in taxable accounts"
-            checked={allowTaxableSells}
-            onChange={(event) => setScenario(withOptions(scenario, { sellInTaxableAccounts: event.target.checked }))}
-          />
-          <span>
-            Allow selling in taxable accounts
-            <span className="editor-hint">
-              Sells there can realize capital gains — uncheck to rebalance only tax-advantaged accounts by selling.
-            </span>
-          </span>
-        </label>
 
         {fileError && (
           <div className="card solve-error" role="alert">
@@ -183,29 +205,16 @@ export function App({ initialScenario }: { initialScenario?: Scenario } = {}) {
 
         <PortfolioEditor scenario={scenario} onChange={setScenario} />
 
-        {scenario.portfolio.accounts.length > 0 && <RecomputeStatus scenario={scenario} />}
+        {scenario.portfolio.accounts.length > 0 && <StatusBar scenario={scenario} onChange={setScenario} />}
 
         {scenario.portfolio.accounts.length === 0 ? (
-          // Until an account exists nothing can be computed: show guidance,
-          // not the solver's error.
-          <div className="card get-started">
-            <h3>Build your portfolio</h3>
-            <ul>
-              <li>
-                The funds and asset classes above are a pre-loaded starting point.
-                They're placeholders, not recommendations, and you can rename, replace or remove them.
-              </li>
-              <li>Set each asset class's target percentage, then add your accounts with their current balances.</li>
-              <li>
-                In each account add all funds that you can trade in the account. To prefer trading a specific fund
-                in an account, order it higher.
-              </li>
-              <li>The trades that move your portfolio toward your targets will appear below.</li>
-            </ul>
-            <p>
-              You can open a previously saved file with <strong>Open file…</strong>
-            </p>
-          </div>
+          // Until an account exists nothing can be computed: a quiet
+          // placeholder marks where results will render, instead of the
+          // solver's error. The real guidance lives next to each control.
+          <p className="empty-note results-placeholder">
+            Trades will appear here once you add an account — or load a previously saved
+            file with <strong>Open file…</strong>
+          </p>
         ) : outcome.result ? (
           <ResultView scenario={scenario} result={outcome.result} />
         ) : (
@@ -232,6 +241,20 @@ export function App({ initialScenario }: { initialScenario?: Scenario } = {}) {
         <p>
           Your data stays in your browser and is never transmitted or stored by this site. Reloading
           clears the page — use <strong>Save file</strong> to keep your work.
+        </p>
+        {/* Links open in a new tab: all state lives in this page, so
+            navigating away would discard an unsaved portfolio. */}
+        <p>
+          rebalancetool is free and open source (MIT license), so the calculations are public and
+          auditable:{" "}
+          <a href="https://github.com/rebalancetool/rebalancetool" target="_blank" rel="noreferrer">
+            view the source
+          </a>{" "}
+          or{" "}
+          <a href="https://github.com/rebalancetool/rebalancetool/issues" target="_blank" rel="noreferrer">
+            report an issue
+          </a>{" "}
+          on GitHub.
         </p>
       </footer>
     </div>

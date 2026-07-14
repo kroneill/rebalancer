@@ -20,6 +20,10 @@ test("the compliance disclaimer footer is always present", () => {
     "The funds pre-loaded on first visit are editable placeholders for convenience, not recommendations",
   );
   expect(footer).toHaveTextContent("Your data stays in your browser and is never transmitted or stored by this site.");
+  // The open-source attribution links out without discarding page state.
+  const source = within(footer).getByRole("link", { name: "view the source" });
+  expect(source).toHaveAttribute("href", "https://github.com/rebalancetool/rebalancetool");
+  expect(source).toHaveAttribute("target", "_blank");
 });
 
 test("breaking the targets total replaces results with an error, fixing it brings them back", async () => {
@@ -32,6 +36,7 @@ test("breaking the targets total replaces results with an error, fixing it bring
 
   // 50 + 20 + 20 + 10 + 10 = 110% — the indicator and the solver both object.
   expect(screen.getByText(/must total 100%/)).toHaveTextContent("110% — must total 100%");
+  expect(screen.getByText(/must total 100%/).closest(".class-row-total")).toHaveClass("total-bad");
   const alert = screen.getByRole("alert");
   expect(alert).toHaveTextContent("Can’t rebalance yet");
   expect(screen.queryByRole("region", { name: "Trades" })).not.toBeInTheDocument();
@@ -89,7 +94,7 @@ test("the recompute indicator only exists once an account does", async () => {
 
 test("the app starts with the fund catalog only: no accounts, targets, or amounts", () => {
   render(<App />);
-  expect(screen.getByRole("heading", { name: "Build your portfolio" })).toBeInTheDocument();
+  expect(screen.getByText(/Trades will appear here once you add an account/)).toBeInTheDocument();
   expect(screen.queryByText("Can’t rebalance yet")).not.toBeInTheDocument();
   expect(screen.queryByRole("region", { name: "Trades" })).not.toBeInTheDocument();
 
@@ -104,14 +109,19 @@ test("the app starts with the fund catalog only: no accounts, targets, or amount
   expect(screen.getByLabelText("Target weight for US Stocks")).toHaveValue("");
   expect(screen.getByLabelText("Target weight for US Bonds")).toHaveValue("");
   expect(screen.queryByLabelText(/Account name/)).not.toBeInTheDocument();
+
+  // The untouched targets total states its rule quietly — never as an error.
+  const totalRow = screen.getByText(/must total 100%/).closest(".class-row-total");
+  expect(totalRow).toHaveClass("total-pending");
+  expect(totalRow).not.toHaveClass("total-bad");
 });
 
-test("Clear all wipes everything back to the getting-started card", async () => {
+test("Clear all wipes everything back to the empty state", async () => {
   const user = userEvent.setup();
   render(<App initialScenario={demoScenario} />);
 
   await user.click(screen.getByRole("button", { name: "Clear all" }));
-  expect(screen.getByRole("heading", { name: "Build your portfolio" })).toBeInTheDocument();
+  expect(screen.getByText(/Trades will appear here once you add an account/)).toBeInTheDocument();
   expect(screen.queryByLabelText("Target weight for US Stocks")).not.toBeInTheDocument();
 });
 
@@ -343,26 +353,34 @@ test("selling is on by default; turning it off in Settings removes sells and fla
 
   const trades = () => screen.getByRole("region", { name: "Trades" });
   expect(within(trades()).getAllByText("SELL").length).toBeGreaterThan(0);
+  expect(screen.getByText(/selling on/)).toBeInTheDocument();
 
-  await user.click(screen.getByRole("button", { name: /Settings/ }));
+  // The status bar has its own Settings button, right where the summary is.
+  await user.click(screen.getByRole("button", { name: "Rebalance settings" }));
   await user.click(screen.getByLabelText("Allow selling"));
 
   expect(within(trades()).queryAllByText("SELL")).toHaveLength(0);
   // Tucked-away settings must never invisibly shape results.
-  expect(within(trades()).getByText(/selling off/)).toBeInTheDocument();
+  expect(screen.getByText(/selling off/)).toBeInTheDocument();
 });
 
-test("taxable sells are on by default; unchecking the checkbox protects taxable accounts", async () => {
+test("taxable sells are off by default and flagged; enabling them in Settings flips both", async () => {
   const user = userEvent.setup();
   render(<App initialScenario={demoScenario} />);
 
   const trades = () => screen.getByRole("region", { name: "Trades" });
   const taxableTradeCard = () =>
     within(trades()).queryByRole("heading", { name: /Taxable Brokerage/ })?.closest(".card") as HTMLElement | null;
-  // The drifted demo portfolio uses a taxable sell out of the box.
-  expect(within(taxableTradeCard()!).getAllByText("SELL").length).toBeGreaterThan(0);
+  // Out of the box the taxable account is protected, and the status bar
+  // above the results says so — the posture must never be invisible.
+  expect(screen.getByText(/taxable accounts protected/)).toBeInTheDocument();
+  expect(taxableTradeCard() === null || within(taxableTradeCard()!).queryAllByText("SELL").length === 0).toBe(true);
 
+  await user.click(screen.getByRole("button", { name: "Rebalance settings" }));
   await user.click(screen.getByLabelText("Allow selling in taxable accounts"));
 
-  expect(taxableTradeCard() === null || within(taxableTradeCard()!).queryAllByText("SELL").length === 0).toBe(true);
+  // The drifted demo portfolio sells in the taxable account once allowed,
+  // and the status bar flips to say sells there may happen.
+  expect(screen.getByText(/may sell in taxable accounts/)).toBeInTheDocument();
+  expect(within(taxableTradeCard()!).getAllByText("SELL").length).toBeGreaterThan(0);
 });
