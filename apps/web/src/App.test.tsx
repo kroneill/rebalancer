@@ -349,13 +349,15 @@ test("selling is on by default; turning it off in Settings removes sells and fla
 
   const trades = () => screen.getByRole("region", { name: "Trades" });
   expect(within(trades()).getAllByText("SELL").length).toBeGreaterThan(0);
+  expect(screen.getByText(/selling on/)).toBeInTheDocument();
 
-  await user.click(screen.getByRole("button", { name: /Settings/ }));
+  // The status bar has its own Settings button, right where the summary is.
+  await user.click(screen.getByRole("button", { name: "Rebalance settings" }));
   await user.click(screen.getByLabelText("Allow selling"));
 
   expect(within(trades()).queryAllByText("SELL")).toHaveLength(0);
   // Tucked-away settings must never invisibly shape results.
-  expect(within(trades()).getByText(/selling off/)).toBeInTheDocument();
+  expect(screen.getByText(/selling off/)).toBeInTheDocument();
 });
 
 test("taxable sells are off by default and flagged; enabling them in Settings flips both", async () => {
@@ -365,16 +367,16 @@ test("taxable sells are off by default and flagged; enabling them in Settings fl
   const trades = () => screen.getByRole("region", { name: "Trades" });
   const taxableTradeCard = () =>
     within(trades()).queryByRole("heading", { name: /Taxable Brokerage/ })?.closest(".card") as HTMLElement | null;
-  // Out of the box the taxable account is protected, and the note beside
-  // the Trades heading says so — the posture must never be invisible.
-  expect(within(trades()).getByText(/no selling in taxable accounts/)).toBeInTheDocument();
+  // Out of the box the taxable account is protected, and the status bar
+  // above the results says so — the posture must never be invisible.
+  expect(screen.getByText(/taxable accounts protected/)).toBeInTheDocument();
   expect(taxableTradeCard() === null || within(taxableTradeCard()!).queryAllByText("SELL").length === 0).toBe(true);
 
-  await user.click(screen.getByRole("button", { name: /Settings/ }));
+  await user.click(screen.getByRole("button", { name: "Rebalance settings" }));
   await user.click(screen.getByLabelText("Allow selling in taxable accounts"));
 
   // The drifted demo portfolio sells in the taxable account once allowed,
-  // and the note flips to say sells there may happen.
-  expect(within(trades()).getByText(/may sell in taxable accounts/)).toBeInTheDocument();
+  // and the status bar flips to say sells there may happen.
+  expect(screen.getByText(/may sell in taxable accounts/)).toBeInTheDocument();
   expect(within(taxableTradeCard()!).getAllByText("SELL").length).toBeGreaterThan(0);
 });

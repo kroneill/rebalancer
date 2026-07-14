@@ -132,11 +132,12 @@ Selling is **on by default** in the UI (the solver itself stays buy-only
 by default) — but never in taxable accounts, where sells could realize
 capital gains, until the user opts in. All the knobs — allow selling,
 allow selling in taxable accounts, tolerance band, minimum sell-funded
-trade — live behind the ⚙ Settings button. A summary note beside the
-Trades heading always states the selling posture ("no selling in taxable
-accounts" / "may sell in taxable accounts" / "selling off") and lists any
-other non-default knobs, so tucked-away settings can never invisibly
-shape the results.
+trade — live behind ⚙ Settings (one button in the header, one in the
+status bar). The status bar between the editor and the results carries
+the recompute pulse plus a settings summary that always states the
+selling posture ("selling on · taxable accounts protected" / "may sell
+in taxable accounts" / "selling off") and lists any other non-default
+knobs, so tucked-away settings can never invisibly shape the results.
 
 A permanent footer carries the compliance disclaimer: the tool is a
 calculator performing arithmetic on user-supplied inputs, not

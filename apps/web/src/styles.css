@@ -81,27 +81,17 @@ body {
   box-shadow: 0 10px 28px rgba(26, 33, 41, 0.18);
 }
 
+/* Status-bar placement opens the popover rightward from the button. */
+.settings-popover-left {
+  left: 0;
+  right: auto;
+}
+
 /* A checkbox that depends on the one above it (taxable sells under Allow selling). */
 .check-row-nested {
   padding-left: 24px;
 }
 
-/* Small annotation next to the Trades heading when settings are non-default. */
-.heading-row {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin: 32px 0 10px;
-}
-
-.heading-row h2 {
-  margin: 0;
-}
-
-.options-note {
-  font-size: 12.5px;
-  color: var(--text-muted);
-}
 
 .app-header h1 {
   margin: 0;
@@ -341,15 +331,29 @@ thead .num-col {
   color: var(--text-muted);
 }
 
-/* Recompute pulse above the results */
+/* Status bar between the editor and the results: recompute pulse,
+   settings summary, and its own ⚙ Settings button. */
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 20px 0 -8px;
+}
+
+.status-options {
+  font-size: 13px;
+  color: var(--text-muted);
+}
 
 .recompute-status {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 20px 0 -8px;
   font-size: 12px;
   color: var(--text-muted);
+  min-width: 105px; /* Recomputing…/Up to date swap must not shift the summary. */
 }
 
 .recompute-status .spinner {

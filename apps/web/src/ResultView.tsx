@@ -1,6 +1,5 @@
-import { DEFAULT_TOLERANCE_BPS } from "@rebalancer/solver";
 import type { RebalanceResult, Scenario, TaxType, Trade } from "@rebalancer/solver";
-import { formatBpsAsPercent, formatCents, formatDelta, formatSignedBpsAsPercent } from "./format.ts";
+import { formatCents, formatDelta, formatSignedBpsAsPercent } from "./format.ts";
 
 /**
  * Renders a RebalanceResult. Pure presentation: every number displayed here
@@ -62,55 +61,20 @@ function groupTradesByAccount(trades: Trade[]): { accountId: string; trades: Tra
   return groups;
 }
 
-/**
- * The settings summary beside the Trades heading. Every setting lives
- * behind ⚙ Settings, so this note is what keeps tucked-away settings from
- * invisibly shaping the results: the selling posture is *always* stated —
- * it's the setting with tax consequences — and the other knobs are listed
- * whenever they differ from the page's defaults.
- */
-function describeOptions(options: Scenario["options"]): string {
-  const notes: string[] = [];
-  if (!(options?.allowSelling ?? false)) notes.push("selling off");
-  else if (options?.sellInTaxableAccounts ?? false) notes.push("may sell in taxable accounts");
-  else notes.push("no selling in taxable accounts");
-  const tolerance = options?.toleranceBps ?? DEFAULT_TOLERANCE_BPS;
-  if (tolerance !== DEFAULT_TOLERANCE_BPS) notes.push(`tolerance ±${formatBpsAsPercent(tolerance)}`);
-  const minTrade = options?.minTradeCents ?? 0;
-  if (minTrade > 0) notes.push(`min trade ${formatCents(minTrade)}`);
-  return notes.join(" · ");
-}
-
-/** The note sits beside the h2, not inside it, so the section's accessible name stays "Trades". */
-function TradesHeading({ optionsNote }: { optionsNote: string }) {
-  return (
-    <div className="heading-row">
-      <h2 id="trades-heading">Trades</h2>
-      <span className="options-note">{optionsNote}</span>
-    </div>
-  );
-}
-
-function TradesSection({
-  result,
-  lookups,
-  optionsNote,
-}: {
-  result: RebalanceResult;
-  lookups: Lookups;
-  optionsNote: string;
-}) {
+// The settings summary that used to sit beside this heading lives in App's
+// status bar now (describeOptions in format.ts), directly above this section.
+function TradesSection({ result, lookups }: { result: RebalanceResult; lookups: Lookups }) {
   if (result.trades.length === 0) {
     return (
       <section aria-labelledby="trades-heading">
-        <TradesHeading optionsNote={optionsNote} />
+        <h2 id="trades-heading">Trades</h2>
         <p className="empty-note">No trades needed — every asset class is within its tolerance band.</p>
       </section>
     );
   }
   return (
     <section aria-labelledby="trades-heading">
-      <TradesHeading optionsNote={optionsNote} />
+      <h2 id="trades-heading">Trades</h2>
       {groupTradesByAccount(result.trades).map((group) => (
         <div className="card" key={group.accountId}>
           <AccountHeading
@@ -244,7 +208,7 @@ export function ResultView({ scenario, result }: { scenario: Scenario; result: R
           </ul>
         </div>
       )}
-      <TradesSection result={result} lookups={lookups} optionsNote={describeOptions(scenario.options)} />
+      <TradesSection result={result} lookups={lookups} />
       <AllocationSection result={result} lookups={lookups} />
       <AccountsSection result={result} lookups={lookups} />
     </div>
