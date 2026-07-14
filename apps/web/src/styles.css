@@ -638,6 +638,11 @@ button:disabled {
   color: var(--sell);
 }
 
+/* Allocation not started yet (total is 0): state the rule without alarm. */
+.class-row-total.total-pending .class-total-value {
+  color: var(--text-muted);
+}
+
 /* Fund blends: the summary toggle in the fund row + the indented editor */
 
 .fund-block {

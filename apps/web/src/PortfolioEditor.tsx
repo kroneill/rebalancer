@@ -177,7 +177,15 @@ function AssetClassesCard({ scenario, onChange }: EditorProps) {
         </div>
       ))}
       {scenario.portfolio.assetClasses.length > 0 && (
-        <div className={`class-row class-row-total ${total === TOTAL_BPS ? "total-ok" : "total-bad"}`}>
+        // A total of 0 means allocating hasn't started (fresh page, or every
+        // target blank) — show the requirement quietly instead of scolding a
+        // page the user hasn't touched. Red is for started-but-inconsistent;
+        // once accounts exist the solver's own error enforces the rule too.
+        <div
+          className={`class-row class-row-total ${
+            total === TOTAL_BPS ? "total-ok" : total === 0 ? "total-pending" : "total-bad"
+          }`}
+        >
           <span className="field-label">Targets total</span>
           <span className="num class-total-value">
             {formatBpsAsPercent(total)}

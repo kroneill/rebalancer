@@ -32,6 +32,7 @@ test("breaking the targets total replaces results with an error, fixing it bring
 
   // 50 + 20 + 20 + 10 + 10 = 110% — the indicator and the solver both object.
   expect(screen.getByText(/must total 100%/)).toHaveTextContent("110% — must total 100%");
+  expect(screen.getByText(/must total 100%/).closest(".class-row-total")).toHaveClass("total-bad");
   const alert = screen.getByRole("alert");
   expect(alert).toHaveTextContent("Can’t rebalance yet");
   expect(screen.queryByRole("region", { name: "Trades" })).not.toBeInTheDocument();
@@ -104,6 +105,11 @@ test("the app starts with the fund catalog only: no accounts, targets, or amount
   expect(screen.getByLabelText("Target weight for US Stocks")).toHaveValue("");
   expect(screen.getByLabelText("Target weight for US Bonds")).toHaveValue("");
   expect(screen.queryByLabelText(/Account name/)).not.toBeInTheDocument();
+
+  // The untouched targets total states its rule quietly — never as an error.
+  const totalRow = screen.getByText(/must total 100%/).closest(".class-row-total");
+  expect(totalRow).toHaveClass("total-pending");
+  expect(totalRow).not.toHaveClass("total-bad");
 });
 
 test("Clear all wipes everything back to the empty state", async () => {
