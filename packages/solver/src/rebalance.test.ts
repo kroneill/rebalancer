@@ -503,7 +503,7 @@ describe("rebalance - asset location optimization", () => {
     return { portfolio, targets };
   }
 
-  it("by default an on-target portfolio is never traded, however misplaced its classes are", () => {
+  it("by default an on-target portfolio is never traded, but the possible relocation is surfaced", () => {
     const { portfolio, targets } = invertedLocationHousehold();
     const result = rebalance(portfolio, targets, {
       contributions: [],
@@ -511,7 +511,26 @@ describe("rebalance - asset location optimization", () => {
       sellInTaxableAccounts: true,
     });
     expect(result.trades).toEqual([]);
-    expect(result.warnings).toEqual([]);
+    // Selling is fully enabled, so flipping the one missing setting would
+    // plan the swap — the warnings say so, with verifiable dollars.
+    expect(result.warnings).toEqual([
+      "US Bonds could move $1,000.00 into tax-advantaged accounts; enabling asset-location optimization " +
+        "would plan the trades.",
+      "US Stocks could move $1,000.00 into taxable accounts; enabling asset-location optimization " +
+        "would plan the trades.",
+    ]);
+  });
+
+  it("names both settings when the suggested relocation would also need taxable sells", () => {
+    const { portfolio, targets } = invertedLocationHousehold();
+    const result = rebalance(portfolio, targets, { contributions: [], allowSelling: true });
+    expect(result.trades).toEqual([]);
+    expect(result.warnings).toEqual([
+      "US Bonds could move $1,000.00 into tax-advantaged accounts; enabling asset-location optimization " +
+        "and taxable selling would plan the trades.",
+      "US Stocks could move $1,000.00 into taxable accounts; enabling asset-location optimization " +
+        "and taxable selling would plan the trades.",
+    ]);
   });
 
   it("swaps both classes into their preferred accounts, with reasons naming the preference", () => {
@@ -576,20 +595,29 @@ describe("rebalance - asset location optimization", () => {
     ]);
   });
 
-  it("does not warn about the taxable-sell guard when relocation is impossible anyway", () => {
-    // The IRA's menu has no bond fund, so the bonds have nowhere preferred
-    // to go (and the stocks can't leave the IRA without them): enabling
-    // taxable sells would change nothing, and the warning must not claim
-    // otherwise.
+  it("points at the fund menus when no preferred-type account offers the class", () => {
+    // Menus that only list what each account already holds — exactly what
+    // entering holdings in the web UI produces. Every setting is on, yet
+    // the swap is structurally impossible: the IRA may not buy BND, the
+    // brokerage may not buy VTI. The settings-oriented warnings must stay
+    // silent (enabling nothing would change anything — the counterfactual
+    // knows), and the menu warnings must say what's actually missing.
     const { portfolio, targets } = invertedLocationHousehold();
+    portfolio.accounts[0]!.availableFundIds = ["bnd"];
     portfolio.accounts[1]!.availableFundIds = ["vti"];
     const result = rebalance(portfolio, targets, {
       contributions: [],
       allowSelling: true,
+      sellInTaxableAccounts: true,
       optimizeAssetLocation: true,
     });
     expect(result.trades).toEqual([]);
-    expect(result.warnings).toEqual([]);
+    expect(result.warnings).toEqual([
+      "US Bonds prefers tax-advantaged accounts, but no tax-advantaged account offers a fund for it, " +
+        "so $1,000.00 cannot be relocated.",
+      "US Stocks prefers taxable accounts, but no taxable account offers a fund for it, " +
+        "so $1,000.00 cannot be relocated.",
+    ]);
   });
 
   it("is inert without allowSelling", () => {

@@ -335,51 +335,114 @@ export function rebalance(portfolio: Portfolio, targets: Target[], options: Reba
     // bigger gaps — visible in the allocation, not warning-worthy.
   }
 
-  // Location-mode feedback: when the taxable-sell guard is all that stands
-  // between the user and better asset location, say so — otherwise enabling
-  // optimizeAssetLocation silently does nothing for the most common
-  // misplacement (a tax-preferred class parked in a taxable account). The
-  // check is a counterfactual, not a heuristic: re-run the allocator with
-  // the guard lifted and report, per class, the preferred-account dollars
-  // it would gain — so the warning never fires when relocation is
-  // impossible for other reasons (no fund, no capacity, minTradeCents), and
-  // the amount it states is exactly what enabling taxable sells unlocks.
-  if (optimizeAssetLocation && allowSelling && !sellInTaxableAccounts) {
-    const unblocked = allocateLp({
-      ...problem,
-      sellable: (accountId, fundId) => heldFundValues.get(accountId)!.get(fundId) ?? 0,
-    });
-    // Exact integer cent-basis-points of the class held in accounts its
-    // preference names.
-    const preferredCentBps = (x: Map<string, Map<string, number>>, classId: string, pref: TaxPreference): number => {
+  // Asset-location feedback. Relocation needs selling, so everything here
+  // is gated on allowSelling; each warning states exact dollars the user
+  // can verify against the tables. The cases form a guidance chain — each
+  // step's warning names the next lever to pull:
+  //   1. mode off, relocation possible → suggest the option (naming
+  //      taxable selling too when the move needs it);
+  //   2. mode on, blocked only by the taxable-sell guard → name the guard;
+  //   3. mode on, but no preferred-type account offers a fund for the
+  //      class → the fund menus are the blocker, not the settings.
+  // Cases 1–2 are counterfactuals, not heuristics: the allocator is re-run
+  // with the mode forced on (and the taxable guard lifted), so they never
+  // fire when relocation is impossible for other reasons (no fund, no
+  // capacity, minTradeCents) and the dollars are exactly what the named
+  // settings unlock.
+  const nonNeutralClasses = portfolio.assetClasses.filter(
+    (assetClass) => (assetClass.taxPreference ?? "neutral") !== "neutral",
+  );
+  if (allowSelling && nonNeutralClasses.length > 0) {
+    /** Exact cent-basis-points of the class across the accounts passing the filter. */
+    const exposureCentBps = (
+      x: Map<string, Map<string, number>>,
+      classId: string,
+      accountFilter: (account: Account) => boolean,
+    ): number => {
       let total = 0;
       for (const account of portfolio.accounts) {
-        if (taxTypeRank(pref, account.taxType) !== 0) continue;
+        if (!accountFilter(account)) continue;
         for (const [fundId, value] of x.get(account.id) ?? []) {
           total += value * (weightsByFund.get(fundId)!.get(classId) ?? 0);
         }
       }
       return total;
     };
-    // Slack: the two runs round floats to cents independently, so up to a
+    const inPreferred = (x: Map<string, Map<string, number>>, classId: string, pref: TaxPreference): number =>
+      exposureCentBps(x, classId, (account) => taxTypeRank(pref, account.taxType) === 0);
+    // Slack: separate runs round floats to cents independently, so up to a
     // cent per position of repair noise can differ between them; anything
     // within the tolerance band is as ignorable as band-scale drift.
     const slackCents = problem.toleranceCents + portfolio.holdings.length + portfolio.accounts.length;
-    const blocked = portfolio.assetClasses
+
+    // Best reachable placement with the mode on and the taxable guard
+    // lifted. When both are already active this is the actual result, so
+    // no extra solve (and cases 1–2 correctly stay silent).
+    const fullPotential =
+      optimizeAssetLocation && sellInTaxableAccounts
+        ? allocation
+        : allocateLp({
+            ...problem,
+            optimizeAssetLocation: true,
+            sellable: (accountId, fundId) => heldFundValues.get(accountId)!.get(fundId) ?? 0,
+          });
+    // Same but keeping the current sell guards — tells case 1 whether
+    // flipping the mode alone would already plan the trades.
+    const guardedPotential = optimizeAssetLocation
+      ? allocation
+      : sellInTaxableAccounts
+        ? fullPotential
+        : allocateLp({ ...problem, optimizeAssetLocation: true });
+
+    const relocatable = nonNeutralClasses
       .flatMap((assetClass) => {
-        const pref = assetClass.taxPreference ?? "neutral";
-        if (pref === "neutral") return [];
-        const gainCentBps =
-          preferredCentBps(unblocked.x, assetClass.id, pref) - preferredCentBps(allocation.x, assetClass.id, pref);
-        const gainCents = Math.round(gainCentBps / TOTAL_BPS);
-        return gainCents > slackCents ? [{ assetClass, pref, gainCents }] : [];
+        const pref = assetClass.taxPreference!;
+        const actualCentBps = inPreferred(allocation.x, assetClass.id, pref);
+        const fullGain = Math.round((inPreferred(fullPotential.x, assetClass.id, pref) - actualCentBps) / TOTAL_BPS);
+        const guardedGain = Math.round(
+          (inPreferred(guardedPotential.x, assetClass.id, pref) - actualCentBps) / TOTAL_BPS,
+        );
+        return fullGain > slackCents ? [{ assetClass, pref, fullGain, guardedGain }] : [];
       })
-      .sort((a, b) => b.gainCents - a.gainCents || a.assetClass.id.localeCompare(b.assetClass.id));
-    for (const entry of blocked) {
-      warnings.push(
-        `${entry.assetClass.name} could move ${formatDollars(entry.gainCents)} into ` +
-          `${preferredKind(entry.pref)} accounts, but selling in taxable accounts is disabled.`,
-      );
+      .sort((a, b) => b.fullGain - a.fullGain || a.assetClass.id.localeCompare(b.assetClass.id));
+    for (const { assetClass, pref, fullGain, guardedGain } of relocatable) {
+      const move = `${assetClass.name} could move ${formatDollars(fullGain)} into ${preferredKind(pref)} accounts`;
+      if (optimizeAssetLocation) {
+        warnings.push(`${move}, but selling in taxable accounts is disabled.`);
+      } else if (guardedGain >= fullGain - slackCents) {
+        warnings.push(`${move}; enabling asset-location optimization would plan the trades.`);
+      } else {
+        warnings.push(`${move}; enabling asset-location optimization and taxable selling would plan the trades.`);
+      }
+    }
+
+    // Case 3 — menus, not settings: the mode is on but the class has
+    // nowhere preferred to go, because no account of the preferred type
+    // offers a fund exposing it. (Whenever this holds, the counterfactual
+    // gain above is structurally zero, so the two warnings never overlap.)
+    if (optimizeAssetLocation) {
+      const stuck = nonNeutralClasses
+        .flatMap((assetClass) => {
+          const pref = assetClass.taxPreference!;
+          const offered = portfolio.accounts.some(
+            (account) =>
+              taxTypeRank(pref, account.taxType) === 0 && accountHasFundFor(account, assetClass.id, weightsByFund),
+          );
+          if (offered) return [];
+          const dispreferredCents = Math.round(
+            (exposureCentBps(allocation.x, assetClass.id, () => true) -
+              inPreferred(allocation.x, assetClass.id, pref)) /
+              TOTAL_BPS,
+          );
+          return dispreferredCents > slackCents ? [{ assetClass, pref, dispreferredCents }] : [];
+        })
+        .sort((a, b) => b.dispreferredCents - a.dispreferredCents || a.assetClass.id.localeCompare(b.assetClass.id));
+      for (const { assetClass, pref, dispreferredCents } of stuck) {
+        warnings.push(
+          `${assetClass.name} prefers ${preferredKind(pref)} accounts, but no ${preferredKind(pref)} account ` +
+            `offers a fund for it, so ${formatDollars(dispreferredCents)} cannot be relocated.`,
+        );
+      }
     }
   }
 
