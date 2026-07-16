@@ -6,6 +6,7 @@ import { PortfolioEditor } from "./PortfolioEditor.tsx";
 import { ResultView } from "./ResultView.tsx";
 import { emptyScenario } from "./scenario-edit.ts";
 import { scenarioFromJson, scenarioToJson } from "./scenario-file.ts";
+import { clearStoredScenario, loadStoredScenario, saveStoredScenario } from "./scenario-storage.ts";
 import { starterScenario } from "./starter-scenario.ts";
 import { OptionsEditor } from "./ScenarioEditor.tsx";
 
@@ -131,16 +132,29 @@ function downloadScenario(scenario: Scenario): void {
 
 /**
  * `initialScenario` exists for tests (which drive a populated portfolio);
- * the shipped app starts with only the starter fund catalog — no accounts,
- * holdings, or targets. Pre-filling those could read as a suggested
- * portfolio; the compliance posture is that every number on screen was
- * stated by the user.
+ * the shipped app starts from this browser's autosaved scenario if one
+ * exists, else with only the starter fund catalog — no accounts, holdings,
+ * or targets. Pre-filling those could read as a suggested portfolio; the
+ * compliance posture is that every number on screen was stated by the user
+ * (a restored autosave qualifies: it's the user's own last session).
  */
 export function App({ initialScenario }: { initialScenario?: Scenario } = {}) {
-  const [scenario, setScenario] = useState<Scenario>(initialScenario ?? starterScenario());
+  const [scenario, setScenario] = useState<Scenario>(
+    () => initialScenario ?? loadStoredScenario() ?? starterScenario(),
+  );
   const [fileError, setFileError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const outcome = useMemo(() => solve(scenario), [scenario]);
+
+  // Autosave every edit to this browser, so a reload restores the session.
+  // Only *edits*: saving the state we merely started from would clobber a
+  // stored entry this version couldn't read (say, a future format's data)
+  // just by opening the page, and would re-create what Reset just cleared.
+  const skipSave = useRef<Scenario | null>(scenario);
+  useEffect(() => {
+    if (scenario === skipSave.current) return;
+    saveStoredScenario(scenario);
+  }, [scenario]);
 
   const onFileChosen = async (file: File | undefined) => {
     if (!file) return;
@@ -171,8 +185,9 @@ export function App({ initialScenario }: { initialScenario?: Scenario } = {}) {
                 </li>
               </ol>
               <p className="how-privacy">
-                Your data never leaves your browser. <strong>Save file</strong> keeps your setup for
-                next time.
+                Your data never leaves your browser — it&rsquo;s saved on this device, so your work
+                is here when you come back. <strong>Save file</strong> makes a backup you can move
+                between devices.
               </p>
             </div>
           </div>
@@ -202,8 +217,24 @@ export function App({ initialScenario }: { initialScenario?: Scenario } = {}) {
                 event.target.value = ""; // so picking the same file again re-fires
               }}
             />
-            <button type="button" onClick={() => setScenario(emptyScenario())}>
+            <button
+              type="button"
+              title="Empty the whole page — every asset class, fund, and account"
+              onClick={() => setScenario(emptyScenario())}
+            >
               Clear all
+            </button>
+            <button
+              type="button"
+              title="Start over: restore the first-visit fund catalog and clear what's saved in this browser"
+              onClick={() => {
+                clearStoredScenario();
+                const fresh = starterScenario();
+                skipSave.current = fresh;
+                setScenario(fresh);
+              }}
+            >
+              Reset
             </button>
             <SettingsButton scenario={scenario} onChange={setScenario} />
           </div>
@@ -252,11 +283,14 @@ export function App({ initialScenario }: { initialScenario?: Scenario } = {}) {
           decisions.
         </p>
         <p>
-          Your data stays in your browser and is never transmitted or stored by this site. Reloading
-          clears the page — use <strong>Save file</strong> to keep your work.
+          Your data stays in your browser: it is saved only on this device and never transmitted to
+          or stored by this site, so your work survives a reload. Use <strong>Save file</strong> to
+          back it up or move it to another device, and <strong>Reset</strong> to clear everything
+          saved here.
         </p>
-        {/* Links open in a new tab: all state lives in this page, so
-            navigating away would discard an unsaved portfolio. */}
+        {/* Links open in a new tab so the portfolio being edited stays on
+            screen (autosave covers a reload, but leaving the page mid-edit
+            would still be a surprise). */}
         <p>
           rebalancetool is free and open source (MIT license), so the calculations are public and
           auditable:{" "}

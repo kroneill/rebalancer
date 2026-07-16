@@ -4,6 +4,7 @@ import { expect, test } from "vitest";
 import type { Scenario } from "@rebalancer/solver";
 import { App } from "./App.tsx";
 import { demoScenario } from "./demo-scenario.ts";
+import { STORAGE_KEY } from "./scenario-storage.ts";
 
 test("renders a populated scenario's solved result", () => {
   render(<App initialScenario={demoScenario} />);
@@ -20,7 +21,9 @@ test("the compliance disclaimer footer is always present", () => {
   expect(footer).toHaveTextContent(
     "The funds pre-loaded on first visit are editable placeholders for convenience, not recommendations",
   );
-  expect(footer).toHaveTextContent("Your data stays in your browser and is never transmitted or stored by this site.");
+  expect(footer).toHaveTextContent(
+    "Your data stays in your browser: it is saved only on this device and never transmitted to or stored by this site",
+  );
   // The open-source attribution links out without discarding page state.
   const source = within(footer).getByRole("link", { name: "view the source" });
   expect(source).toHaveAttribute("href", "https://github.com/rebalancetool/rebalancetool");
@@ -115,6 +118,46 @@ test("the app starts with the fund catalog only: no accounts, targets, or amount
   const totalRow = screen.getByText(/must total 100%/).closest(".class-row-total");
   expect(totalRow).toHaveClass("total-pending");
   expect(totalRow).not.toHaveClass("total-bad");
+});
+
+test("an edited scenario survives a reload via this browser's autosave", async () => {
+  const user = userEvent.setup();
+  const firstVisit = render(<App />);
+  await user.type(screen.getByLabelText("Target weight for US Stocks"), "60");
+  firstVisit.unmount();
+
+  // A fresh mount with no initialScenario is a reload: state comes back.
+  render(<App />);
+  expect(screen.getByLabelText("Target weight for US Stocks")).toHaveValue("60");
+});
+
+test("Reset restores the first-visit state and clears this browser's saved copy", async () => {
+  const user = userEvent.setup();
+  render(<App initialScenario={demoScenario} />);
+
+  await user.click(screen.getByRole("button", { name: "Reset" }));
+
+  // Back to the starter catalog: funds present, no accounts, blank targets.
+  expect(screen.getByLabelText("Ticker for fund vti")).toHaveValue("VTI");
+  expect(screen.getByText(/Trades will appear here once you add an account/)).toBeInTheDocument();
+  expect(screen.getByLabelText("Target weight for US Stocks")).toHaveValue("");
+  // The saved copy is really gone, not replaced with the starter document.
+  expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+});
+
+test("opening the page never writes storage, so an unreadable entry survives until an edit", async () => {
+  const user = userEvent.setup();
+  localStorage.setItem(STORAGE_KEY, '{"nonsense": true}');
+  render(<App />);
+
+  // The unreadable entry falls back to a first visit — and is not clobbered
+  // by the mere page load (it could be a future format's data).
+  expect(screen.getByLabelText("Ticker for fund vti")).toHaveValue("VTI");
+  expect(localStorage.getItem(STORAGE_KEY)).toBe('{"nonsense": true}');
+
+  // A real edit legitimately takes the slot over.
+  await user.type(screen.getByLabelText("Target weight for US Stocks"), "60");
+  expect(localStorage.getItem(STORAGE_KEY)).toContain('"_format": "rebalancetool-scenario-v1"');
 });
 
 test("Clear all wipes everything back to the empty state", async () => {
