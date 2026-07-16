@@ -2,9 +2,12 @@
 
 A React single-page app over `@rebalancer/solver`: build a portfolio and
 targets in the browser, watch the solver's trades update live, download the
-whole thing as a JSON file. There is **no backend and no storage** — all
-state lives in the page, and reloading clears it (that's by design; the
-JSON download is the persistence story).
+whole thing as a JSON file. There is **no backend** — data never leaves the
+device. The scenario autosaves to this browser's `localStorage` on every
+edit (`scenario-storage.ts`), so a reload restores the session; the JSON
+download is the portable persistence story (backup, moving between
+devices), and **Reset** returns to the first-visit state and clears the
+saved copy.
 
 ## Run it locally
 
@@ -13,12 +16,14 @@ pnpm install     # once, at the repo root (Node 24 — run `fnm use` first)
 pnpm dev         # start the Vite dev server
 ```
 
-Then open **http://localhost:5173**. The page starts with a small
+Then open **http://localhost:5173**. A first visit starts with a small
 catalog of common index funds and their asset classes
 (`starter-scenario.ts`) — an editable convenience, deliberately with
 **no accounts, holdings, or target percentages**: pre-filling those
 could read as a suggested portfolio, and the compliance posture is that
-every dollar amount and percentage on screen was stated by the user.
+every dollar amount and percentage on screen was stated by the user (a
+repeat visit restores the browser's autosaved scenario instead — the
+user's own last session, so the posture holds).
 The header's "How it works" steps and short hints beside each control
 point the way; to see a fully populated run, load any fixture from
 `packages/solver/fixtures/` via **Open file…** (the UI tests drive a
@@ -161,12 +166,12 @@ results.
 
 A permanent footer carries the compliance disclaimer: the tool is a
 calculator performing arithmetic on user-supplied inputs, not
-personalized investment advice, and data never leaves the browser. Keep
-it visible on every layout change — presenting impersonal calculation
-(rather than security recommendations) is a legal posture, not just
-copy. It also carries the open-source attribution (MIT, with GitHub
-source/issues links); those links open in a new tab because navigating
-away would discard the page's unsaved state.
+personalized investment advice, and data never leaves the device (it is
+saved only in this browser, never transmitted). Keep it visible on every
+layout change — presenting impersonal calculation (rather than security
+recommendations) is a legal posture, not just copy. It also carries the
+open-source attribution (MIT, with GitHub source/issues links); those
+links open in a new tab so the portfolio being edited stays on screen.
 
 **Save file / Open file…** in the header save and restore the complete
 scenario. The file is the solver's canonical `Scenario` document — exactly
@@ -175,6 +180,19 @@ what the CLI reads — so a downloaded file works directly with
 loads straight into the UI. Downloads carry an `"_format":
 "rebalancetool-scenario-v1"` comment key (the validator ignores
 `_`-prefixed keys) so future format changes can recognize old files.
+
+The same document autosaves to `localStorage` on every edit
+(`scenario-storage.ts` — the one permitted use of browser storage), and
+loading it back goes through the same validation as an uploaded file, so
+a corrupt or incompatible entry silently falls back to a first visit.
+Only edits are written — merely opening the page never is — so an entry
+this version can't read (a future format's data, say) survives until the
+user actually changes something. All storage
+access is best-effort: with storage unavailable (private browsing,
+disabled) the app just behaves as before autosave existed. Two header
+buttons cover starting over: **Clear all** empties the document (an edit
+like any other, so it autosaves), and **Reset** restores the first-visit
+starter catalog and clears the browser's saved copy.
 
 ## How it's built
 
@@ -187,8 +205,11 @@ loads straight into the UI. Downloads carry an `"_format":
   code. Money is integer cents end to end — typed text is parsed to cents
   textually (`parse.ts`, no float math) and formatted to dollars only at
   render (`format.ts`).
-- No network calls, no `localStorage`/`sessionStorage`, no `<form>`
-  submits. Market values come from user input, always.
+- No network calls, no `<form>` submits. Market values come from user
+  input, always. The only browser storage is the scenario autosave in
+  `scenario-storage.ts` — don't add other keys or storage kinds; anything
+  worth persisting belongs in the `Scenario` document so it survives the
+  file round-trip too.
 - Tests are colocated `*.test.ts(x)` files run by vitest with
   testing-library in jsdom: pure-function tests for parsing and scenario
   updates, rendering tests against hand-written `RebalanceResult`s, and
